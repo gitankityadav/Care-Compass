@@ -1,0 +1,31 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+enum Role {
+  ADMINISTRATOR
+  DOCTOR
+  NURSE
+  LOGISTICS_MANAGER
+  TECHNICIAN
+  AUDITOR
+}
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+enum AlertStatus {
+  ACTIVE
+  MONITORING
+  RESOLVED
+}
+model User { id String @id @default(cuid()) name String email String @unique passwordHash String role Role active Boolean @default(true) createdAt DateTime @default(now()) auditEvents AuditLog[] }
+model Hospital { id String @id name String address String? city String? state String? latitude Float? longitude Float? patients Patient[] nurses Nurse[] devices MedicalDevice[] shipments Shipment[] alerts ResilienceAlert[] }
+model Patient { id String @id name String age Int? sex String? hospitalId String hospital Hospital @relation(fields:[hospitalId],references:[id]) risk RiskLevel @default(MODERATE) carePathway String? assignedNurseId String? nurse Nurse? @relation(fields:[assignedNurseId],references:[id]) status String @default("Active") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model Nurse { id String @id name String specialty String? hospitalId String hospital @relation(fields:[hospitalId],references:[id]) capacity Int @default(8) currentLoad Int @default(0) availability String @default("Available") patients Patient[] }
+model Shipment { id String @id origin String destination String item String quantity Int status String eta DateTime? hospitalId String? hospital Hospital? @relation(fields:[hospitalId],references:[id]) updatedAt DateTime @updatedAt }
+model MedicalDevice { id String @id name String type String? hospitalId String hospital @relation(fields:[hospitalId],references:[id]) unit String? healthScore Float? status String @default("Operational") ticketId String? technician String? updatedAt DateTime @updatedAt }
+model ResilienceAlert { id String @id title String facilityId String? facility Hospital? @relation(fields:[facilityId],references:[id]) type String severity RiskLevel status AlertStatus @default(ACTIVE) description String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model AuditLog { id String @id @default(cuid()) actorId String? actor User? @relation(fields:[actorId],references:[id]) action String entityType String entityId String details Json? createdAt DateTime @default(now()) }
+model ImportBatch { id String @id @default(cuid()) fileName String status String recordCount Int @default(0) errorSummary String? createdAt DateTime @default(now()) }
+model SourceRecord { id String @id @default(cuid()) batchId String tableName String sourceId String? payload Json createdAt DateTime @default(now()) @@index([tableName]) @@index([sourceId]) }

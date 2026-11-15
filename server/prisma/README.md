@@ -1,0 +1,1 @@
+Deprecated: the active PostgreSQL schema is `../sql/001_care_compass_schema.sql`. The previous Prisma starter schema is not aligned to the approved 27-table model and is not used by this API.

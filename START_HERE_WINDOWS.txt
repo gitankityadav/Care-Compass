@@ -1,0 +1,37 @@
+CARE COMPASS - WINDOWS QUICK START
+
+1) Open this folder in VS Code.
+2) Open Terminal > New Terminal (PowerShell).
+3) Start the UI:
+   npm install
+   npm run dev
+   Browse to http://localhost:5173
+
+4) For PostgreSQL, create an empty database first.
+   cd server
+   Copy-Item .env.example .env
+   Edit .env and set DATABASE_URL.
+   npm install
+
+5) Apply the database schema from the server folder:
+   psql "postgresql://USER:PASSWORD@HOST:5432/DATABASE" -f sql/001_care_compass_schema.sql
+
+6) Import the full synthetic workbook:
+   npm run db:import
+
+7) Start the API in another terminal:
+   npm run dev
+   Browse to http://localhost:4000/api/health
+
+IMPORTANT:
+- The UI remains a browser-local interactive prototype; it is not yet wired to the PostgreSQL API.
+- Use only fictional synthetic data.
+- Do not deploy as a clinical/production system before completing the integration and security checklist.
+
+8) Validate all five documented scenario traces:
+   npm run validate:scenarios
+
+9) In the Executive Twin, use Golden Scenario Runner and click Run & verify for SCN1–SCN5.
+   Each scenario returns step-level checks and refreshes the live data.
+
+For a deployed frontend, set VITE_API_URL to your deployed API URL in the Vercel project environment variables.

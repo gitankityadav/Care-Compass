@@ -1,0 +1,1539 @@
+{
+  "hospitals": {
+    "primary_key": "hospital_id",
+    "columns": [
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "hospital_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "city",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "state",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "zip_code",
+        "sql_type": "VARCHAR(5)",
+        "not_null": true
+      },
+      {
+        "name": "licensed_beds",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "occupied_beds",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "occupancy_rate",
+        "sql_type": "NUMERIC(7,3)",
+        "not_null": true
+      },
+      {
+        "name": "icu_beds",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "icu_occupied_beds",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "ed_capacity",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "latitude",
+        "sql_type": "NUMERIC(10,7)",
+        "not_null": true
+      },
+      {
+        "name": "longitude",
+        "sql_type": "NUMERIC(10,7)",
+        "not_null": true
+      },
+      {
+        "name": "ehr_system",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "last_updated_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      }
+    ],
+    "source_rows": 100
+  },
+  "patients": {
+    "primary_key": "patient_id",
+    "columns": [
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "assigned_nurse_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "first_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "last_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "age",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "sex_at_birth",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "city",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "state",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "zip_code",
+        "sql_type": "VARCHAR(5)",
+        "not_null": true
+      },
+      {
+        "name": "encounter_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "primary_condition",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "acuity_level",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "risk_score",
+        "sql_type": "NUMERIC(7,3)",
+        "not_null": true
+      },
+      {
+        "name": "readmission_risk_30d",
+        "sql_type": "NUMERIC(7,3)",
+        "not_null": true
+      },
+      {
+        "name": "admission_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "discharge_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "synthetic_record",
+        "sql_type": "BOOLEAN",
+        "not_null": true
+      }
+    ],
+    "source_rows": 5000
+  },
+  "nurses": {
+    "primary_key": "nurse_id",
+    "columns": [
+      {
+        "name": "nurse_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "full_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "department",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "specialty",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "shift",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "employment_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "patient_assignment_capacity",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "current_patient_load",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "license_state",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "last_shift_start_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      }
+    ],
+    "source_rows": 500
+  },
+  "medical_devices": {
+    "primary_key": "device_id",
+    "columns": [
+      {
+        "name": "device_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "device_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "manufacturer",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "model",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "serial_number",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "location_unit",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "operational_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "health_score",
+        "sql_type": "NUMERIC(7,3)",
+        "not_null": true
+      },
+      {
+        "name": "battery_percent",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "temperature_c",
+        "sql_type": "NUMERIC(7,3)",
+        "not_null": true
+      },
+      {
+        "name": "last_maintenance_date",
+        "sql_type": "DATE",
+        "not_null": true
+      },
+      {
+        "name": "next_maintenance_due",
+        "sql_type": "DATE",
+        "not_null": true
+      },
+      {
+        "name": "telemetry_timestamp_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      }
+    ],
+    "source_rows": 2000
+  },
+  "logistics_shipments": {
+    "primary_key": "shipment_id",
+    "columns": [
+      {
+        "name": "shipment_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "supplier_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "origin_city",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "origin_state",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "origin_zip",
+        "sql_type": "VARCHAR(5)",
+        "not_null": true
+      },
+      {
+        "name": "destination_city",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "destination_state",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "destination_zip",
+        "sql_type": "VARCHAR(5)",
+        "not_null": true
+      },
+      {
+        "name": "supply_category",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "item_description",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "quantity",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "unit_of_measure",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "priority",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "shipment_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "tracking_number",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "created_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "estimated_delivery_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "actual_delivery_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": false
+      },
+      {
+        "name": "temperature_excursion",
+        "sql_type": "BOOLEAN",
+        "not_null": true
+      },
+      {
+        "name": "destination_hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "distribution_center_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "supplier_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 10000
+  },
+  "resilience_alerts": {
+    "primary_key": "alert_id",
+    "columns": [
+      {
+        "name": "alert_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "alert_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "severity",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "alert_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "title",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "description",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "affected_city",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "affected_state",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "affected_zip",
+        "sql_type": "VARCHAR(5)",
+        "not_null": true
+      },
+      {
+        "name": "start_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "end_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "estimated_capacity_impact_pct",
+        "sql_type": "NUMERIC(7,3)",
+        "not_null": true
+      },
+      {
+        "name": "patients_at_risk",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "related_shipment_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      },
+      {
+        "name": "response_action",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "synthetic_record",
+        "sql_type": "BOOLEAN",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 1000
+  },
+  "distribution_centers": {
+    "primary_key": "distribution_center_id",
+    "columns": [
+      {
+        "name": "distribution_center_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "city",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "state",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "latitude",
+        "sql_type": "NUMERIC(10,7)",
+        "not_null": true
+      },
+      {
+        "name": "longitude",
+        "sql_type": "NUMERIC(10,7)",
+        "not_null": true
+      },
+      {
+        "name": "operational_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      }
+    ],
+    "source_rows": 8
+  },
+  "suppliers": {
+    "primary_key": "supplier_id",
+    "columns": [
+      {
+        "name": "supplier_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "supplier_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "supplier_category",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      }
+    ],
+    "source_rows": 12
+  },
+  "inventory": {
+    "primary_key": "inventory_id",
+    "columns": [
+      {
+        "name": "inventory_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "distribution_center_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "item_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "on_hand_qty",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "reserved_qty",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "available_qty",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "reorder_threshold",
+        "sql_type": "INTEGER",
+        "not_null": true
+      }
+    ],
+    "source_rows": 120
+  },
+  "therapy_episodes": {
+    "primary_key": "therapy_episode_id",
+    "columns": [
+      {
+        "name": "therapy_episode_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "therapy_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "clinical_focus",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "start_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "planned_end_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "care_plan_tier",
+        "sql_type": "TEXT",
+        "not_null": true
+      }
+    ],
+    "source_rows": 5000
+  },
+  "therapy_sessions": {
+    "primary_key": "session_id",
+    "columns": [
+      {
+        "name": "session_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "therapy_episode_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "scheduled_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "session_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "delivery_mode",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 15150
+  },
+  "nurse_patient_assignment": {
+    "primary_key": "assignment_id",
+    "columns": [
+      {
+        "name": "assignment_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "nurse_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "care_role",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "start_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "visit_frequency",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "active_status",
+        "sql_type": "BOOLEAN",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 5001
+  },
+  "device_patient_assignment": {
+    "primary_key": "device_assignment_id",
+    "columns": [
+      {
+        "name": "device_assignment_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "device_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "assigned_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "returned_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": false
+      },
+      {
+        "name": "active_status",
+        "sql_type": "BOOLEAN",
+        "not_null": true
+      },
+      {
+        "name": "assignment_reason",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 1162
+  },
+  "patient_supply_plan": {
+    "primary_key": "supply_plan_id",
+    "columns": [
+      {
+        "name": "supply_plan_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "therapy_episode_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "item_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "daily_usage",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "days_remaining",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "next_delivery_due_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "stockout_risk",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 1500
+  },
+  "shipment_patient_allocation": {
+    "primary_key": "allocation_id",
+    "columns": [
+      {
+        "name": "allocation_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "shipment_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "item_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "allocated_quantity",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "impact_if_delayed",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 3500
+  },
+  "shipment_events": {
+    "primary_key": "shipment_event_id",
+    "columns": [
+      {
+        "name": "shipment_event_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "shipment_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "event_status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "event_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "recorded_by",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 41047
+  },
+  "technician_master": {
+    "primary_key": "technician_id",
+    "columns": [
+      {
+        "name": "technician_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "technician_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "region",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "specialization",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "certification",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "availability",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "current_workload",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "latitude",
+        "sql_type": "NUMERIC(10,7)",
+        "not_null": true
+      },
+      {
+        "name": "longitude",
+        "sql_type": "NUMERIC(10,7)",
+        "not_null": true
+      },
+      {
+        "name": "base_state",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      }
+    ],
+    "source_rows": 24
+  },
+  "device_alarms": {
+    "primary_key": "alarm_id",
+    "columns": [
+      {
+        "name": "alarm_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "device_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "triggered_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "alarm_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "severity",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "ticket_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 121
+  },
+  "service_tickets": {
+    "primary_key": "ticket_id",
+    "columns": [
+      {
+        "name": "ticket_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "device_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "alarm_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "ticket_created_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "priority",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "assigned_technician_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "sla_hours",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 122
+  },
+  "work_orders": {
+    "primary_key": "work_order_id",
+    "columns": [
+      {
+        "name": "work_order_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "ticket_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "technician_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "created_date_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "dispatch_date_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "completion_date_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "outcome",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 102
+  },
+  "intervention_cases": {
+    "primary_key": "intervention_id",
+    "columns": [
+      {
+        "name": "intervention_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "therapy_episode_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "assigned_nurse_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "intervention_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "risk_level",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "created_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 352
+  },
+  "recall_cases": {
+    "primary_key": "recall_case_id",
+    "columns": [
+      {
+        "name": "recall_case_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "device_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "manufacturer",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "model",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "firmware_version",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "recall_version",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "severity",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "recommended_action",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 60
+  },
+  "firmware_campaigns": {
+    "primary_key": "campaign_id",
+    "columns": [
+      {
+        "name": "campaign_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "campaign_name",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "target_firmware_version",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "selection_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "selected_device_count",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "success_count",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "offline_count",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "failed_rollback_count",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "excluded_count",
+        "sql_type": "INTEGER",
+        "not_null": true
+      },
+      {
+        "name": "audit_required",
+        "sql_type": "BOOLEAN",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      }
+    ],
+    "source_rows": 1
+  },
+  "firmware_execution": {
+    "primary_key": "execution_id",
+    "columns": [
+      {
+        "name": "execution_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "campaign_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "device_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "execution_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "outcome",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "resulting_firmware_version",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      },
+      {
+        "name": "result_detail",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      }
+    ],
+    "source_rows": 20
+  },
+  "audit_log": {
+    "primary_key": "audit_id",
+    "columns": [
+      {
+        "name": "audit_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "entity_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "entity_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "action",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "previous_value",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "new_value",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "event_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "performed_by",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      }
+    ],
+    "source_rows": 26
+  },
+  "ticket_status_history": {
+    "primary_key": "ticket_status_event_id",
+    "columns": [
+      {
+        "name": "ticket_status_event_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "ticket_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "status_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "changed_by_technician_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 558
+  },
+  "risk_register": {
+    "primary_key": "risk_id",
+    "columns": [
+      {
+        "name": "risk_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "patient_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "hospital_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": true
+      },
+      {
+        "name": "risk_type",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "severity",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "status",
+        "sql_type": "TEXT",
+        "not_null": true
+      },
+      {
+        "name": "identified_datetime_utc",
+        "sql_type": "TIMESTAMPTZ",
+        "not_null": true
+      },
+      {
+        "name": "scenario_id",
+        "sql_type": "VARCHAR(64)",
+        "not_null": false
+      }
+    ],
+    "source_rows": 251
+  }
+}

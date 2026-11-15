@@ -1,0 +1,60 @@
+import {useRef} from 'react'
+import {HeartPulse,ChevronRight} from 'lucide-react'
+import EcgLine from './EcgLine'
+
+/* Compass emblem: counter-rotating rings, a pulsing core and a needle that seeks north. */
+function CompassArt(){
+  const ticks=Array.from({length:72},(_,i)=>i)
+  return <div className="compass" aria-hidden="true">
+    <div className="compass-halo"/>
+    <svg viewBox="-200 -200 400 400" className="compass-svg">
+      <g className="ring r1">
+        <circle r="184" className="ring-line"/>
+        {ticks.map(i=><line key={i} x1="0" y1={i%6===0?-184:-178} x2="0" y2="-170" transform={`rotate(${i*5})`} className={i%6===0?'tick major':'tick'}/>)}
+      </g>
+      <g className="ring r2">
+        <circle r="146" className="ring-line dashed"/>
+      </g>
+      {[['N',0,-150],['E',150,5],['S',0,160],['W',-150,5]].map(([t,x,y])=><text key={t} x={x} y={y} className="cardinal" textAnchor="middle">{t}</text>)}
+      <g className="ring r3"><circle r="108" className="ring-line faint"/><circle r="4" cx="0" cy="-108" className="orbit-dot"/></g>
+      <g className="needle">
+        <polygon points="0,-96 11,0 0,14 -11,0" className="needle-n"/>
+        <polygon points="0,96 11,0 0,-14 -11,0" className="needle-s"/>
+      </g>
+      <circle r="9" className="hub"/><circle r="3" className="hub-core"/>
+    </svg>
+  </div>
+}
+
+export default function Login({role,setRole,roles,onEnter}){
+  const card=useRef(null)
+  const tilt=e=>{
+    const el=card.current;if(!el)return
+    const r=el.getBoundingClientRect()
+    const x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5
+    el.style.setProperty('--rx',(-y*7).toFixed(2)+'deg')
+    el.style.setProperty('--ry',(x*9).toFixed(2)+'deg')
+    el.style.setProperty('--mx',((x+.5)*100).toFixed(1)+'%')
+    el.style.setProperty('--my',((y+.5)*100).toFixed(1)+'%')
+  }
+  const reset=()=>{const el=card.current;if(!el)return;el.style.setProperty('--rx','0deg');el.style.setProperty('--ry','0deg')}
+  return <div className="login">
+    <CompassArt/>
+    <div className="login-stage" onPointerMove={tilt} onPointerLeave={reset}>
+      <div className="login-card" ref={card}>
+        <div className="login-glare"/>
+        <div className="brand-mark pulse"><HeartPulse/></div>
+        <div className="eyebrow">HEALTHCARE GIS COMMAND CENTER</div>
+        <h1><span className="grad-text">Care Compass</span></h1>
+        <EcgLine className="login-ecg"/>
+        <p>Unified operational intelligence for connected care networks.</p>
+        <label htmlFor="loginName">Your display name</label>
+        <input id="loginName" placeholder="e.g. Ankit Yadav" defaultValue="Ankit Yadav"/>
+        <label htmlFor="loginRole">Choose your role</label>
+        <select id="loginRole" value={role} onChange={e=>setRole(e.target.value)}>{roles.map(r=><option key={r}>{r}</option>)}</select>
+        <button className="primary wide shine" onClick={()=>onEnter(document.getElementById('loginName').value||'Demo User')}>Enter command center <ChevronRight size={17}/></button>
+        <small>Demo authentication · Role-based navigation · Synthetic data only</small>
+      </div>
+    </div>
+  </div>
+}

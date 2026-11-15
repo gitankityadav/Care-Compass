@@ -1,0 +1,50 @@
+import 'dotenv/config';
+import pg from 'pg';
+const {Pool}=pg;
+if(!process.env.DATABASE_URL)throw new Error('DATABASE_URL is required');
+const pool=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.PGSSLMODE==='require'?{rejectUnauthorized:false}:undefined});
+const checks=[];
+const q=async(sql,params=[])=>{const r=await pool.query(sql,params);return r.rows};
+const check=(name,ok,detail='')=>{checks.push({name,ok,detail});console.log(`${ok?'PASS':'FAIL'} ${name}${detail?' — '+detail:''}`)};
+try{
+ const p=(await q("SELECT * FROM patient_supply_plan WHERE scenario_id='SCN1'"))[0];
+ const a=(await q("SELECT * FROM shipment_patient_allocation WHERE scenario_id='SCN1'"))[0];
+ const sh=a&&(await q('SELECT * FROM logistics_shipments WHERE shipment_id=$1',[a.shipment_id]))[0];
+ const alert=sh&&(await q("SELECT * FROM resilience_alerts WHERE scenario_id='SCN1' AND related_shipment_id=$1",[sh.shipment_id]))[0];
+ const events=sh?await q("SELECT event_status FROM shipment_events WHERE scenario_id='SCN1' AND shipment_id=$1",[sh.shipment_id]):[];
+ check('SCN1 patient supply plan and allocation linked',!!p&&!!a&&p.patient_id===a.patient_id);
+ check('SCN1 alternate DC reroute and delivery',!!sh&&sh.distribution_center_id==='DC008'&&sh.shipment_status==='Delivered');
+ check('SCN1 alert and four shipment events',!!alert&&['Distribution Centre Impacted','Alternate DC Selected','Rerouted','Delivered'].every(s=>events.some(e=>e.event_status===s)));
+ if(p&&a&&sh&&(p.item_name!==a.item_name||a.item_name!==sh.supply_category))console.warn('WARN SCN1 source item labels differ; source values preserved.');
+ const ses=(await q("SELECT * FROM therapy_sessions WHERE scenario_id='SCN2'"))[0];
+ const assigns=ses?await q("SELECT * FROM nurse_patient_assignment WHERE scenario_id='SCN2' AND patient_id=$1",[ses.patient_id]):[];
+ const intervention=ses&&(await q("SELECT * FROM intervention_cases WHERE scenario_id='SCN2' AND patient_id=$1",[ses.patient_id]))[0];
+ const patient=ses&&(await q('SELECT * FROM patients WHERE patient_id=$1',[ses.patient_id]))[0];
+ check('SCN2 missed session and old assignment inactive',!!ses&&ses.session_status==='Missed'&&assigns.some(a=>!a.active_status));
+ check('SCN2 replacement assignment, patient pointer and completed intervention',!!patient&&assigns.some(a=>a.active_status&&a.nurse_id===patient.assigned_nurse_id)&&!!intervention&&intervention.status==='Completed');
+ const alarm=(await q("SELECT * FROM device_alarms WHERE scenario_id='SCN3'"))[0];
+ const ticket=alarm&&(await q('SELECT * FROM service_tickets WHERE ticket_id=$1',[alarm.ticket_id]))[0];
+ const order=ticket&&(await q("SELECT * FROM work_orders WHERE scenario_id='SCN3' AND ticket_id=$1",[ticket.ticket_id]))[0];
+ const device=alarm&&(await q('SELECT * FROM medical_devices WHERE device_id=$1',[alarm.device_id]))[0];
+ check('SCN3 device degradation and alarm resolved',!!device&&device.operational_status==='Under Maintenance'&&Number(device.health_score)<=24.5&&!!alarm&&alarm.status==='Resolved');
+ check('SCN3 ticket, technician and work order closed',!!ticket&&ticket.status==='Resolved'&&!!ticket.assigned_technician_id&&!!order&&order.status==='Closed'&&order.technician_id===ticket.assigned_technician_id);
+ const recall=(await q("SELECT * FROM recall_cases WHERE scenario_id='SCN4'"))[0];
+ const da=recall&&(await q("SELECT * FROM device_patient_assignment WHERE scenario_id='SCN4' AND device_id=$1",[recall.device_id]))[0];
+ const risk=da&&(await q("SELECT * FROM risk_register WHERE scenario_id='SCN4' AND patient_id=$1",[da.patient_id]))[0];
+ const intervention4=da&&(await q("SELECT * FROM intervention_cases WHERE scenario_id='SCN4' AND patient_id=$1",[da.patient_id]))[0];
+ const ticket4=recall&&(await q("SELECT * FROM service_tickets WHERE scenario_id='SCN4' AND device_id=$1",[recall.device_id]))[0];
+ const order4=ticket4&&(await q("SELECT * FROM work_orders WHERE scenario_id='SCN4' AND ticket_id=$1",[ticket4.ticket_id]))[0];
+ check('SCN4 recall and impacted patient linked',!!recall&&!!da&&recall.device_id===da.device_id);
+ check('SCN4 critical risk, completed intervention and closed work order',!!risk&&risk.severity==='Critical'&&risk.status==='Mitigated'&&!!intervention4&&intervention4.status==='Completed'&&!!order4&&order4.status==='Closed');
+ if(recall){const dev=(await q('SELECT * FROM medical_devices WHERE device_id=$1',[recall.device_id]))[0];if(dev&&(dev.manufacturer!==recall.manufacturer||dev.model!==recall.model))console.warn('WARN SCN4 recall/device manufacturer-model labels differ; source values preserved.');}
+ const campaign=(await q("SELECT * FROM firmware_campaigns WHERE scenario_id='SCN5'"))[0];
+ const executions=campaign?await q('SELECT * FROM firmware_execution WHERE campaign_id=$1',[campaign.campaign_id]):[];
+ const audits=await q("SELECT * FROM audit_log WHERE scenario_id='SCN5' AND entity_type='firmware_execution'");
+ const auditIds=new Set(audits.map(a=>a.entity_id));
+ check('SCN5 exactly 20 unique device executions',!!campaign&&Number(campaign.selected_device_count)===20&&executions.length===20&&new Set(executions.map(e=>e.device_id)).size===20);
+ check('SCN5 one audit entry per execution',executions.length===20&&executions.every(e=>auditIds.has(e.execution_id))&&audits.length===20);
+ const failed=checks.filter(c=>!c.ok);
+ console.log(`\\n${checks.length-failed.length}/${checks.length} checks passed.`);
+ if(failed.length)process.exitCode=1;
+}catch(e){console.error(e);process.exitCode=1}
+finally{await pool.end()}

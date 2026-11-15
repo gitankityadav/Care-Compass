@@ -1,0 +1,135 @@
+{
+  "source": "Care Compass Synthetic Data.xlsx",
+  "sheetCount": 32,
+  "sheets": {
+    "START_HERE": {
+      "previewRows": 14,
+      "totalRows": 14
+    },
+    "hospitals": {
+      "previewRows": 100,
+      "totalRows": 100
+    },
+    "patients": {
+      "previewRows": 100,
+      "totalRows": 5000
+    },
+    "nurses": {
+      "previewRows": 100,
+      "totalRows": 500
+    },
+    "medical_devices": {
+      "previewRows": 100,
+      "totalRows": 2000
+    },
+    "logistics_shipments": {
+      "previewRows": 100,
+      "totalRows": 10000
+    },
+    "resilience_alerts": {
+      "previewRows": 100,
+      "totalRows": 1000
+    },
+    "distribution_centers": {
+      "previewRows": 8,
+      "totalRows": 8
+    },
+    "suppliers": {
+      "previewRows": 12,
+      "totalRows": 12
+    },
+    "inventory": {
+      "previewRows": 100,
+      "totalRows": 120
+    },
+    "therapy_episodes": {
+      "previewRows": 100,
+      "totalRows": 5000
+    },
+    "therapy_sessions": {
+      "previewRows": 100,
+      "totalRows": 15150
+    },
+    "nurse_patient_assignment": {
+      "previewRows": 100,
+      "totalRows": 5001
+    },
+    "device_patient_assignment": {
+      "previewRows": 100,
+      "totalRows": 1162
+    },
+    "patient_supply_plan": {
+      "previewRows": 100,
+      "totalRows": 1500
+    },
+    "shipment_patient_allocation": {
+      "previewRows": 100,
+      "totalRows": 3500
+    },
+    "shipment_events": {
+      "previewRows": 100,
+      "totalRows": 41047
+    },
+    "technician_master": {
+      "previewRows": 24,
+      "totalRows": 24
+    },
+    "device_alarms": {
+      "previewRows": 100,
+      "totalRows": 121
+    },
+    "service_tickets": {
+      "previewRows": 100,
+      "totalRows": 122
+    },
+    "work_orders": {
+      "previewRows": 100,
+      "totalRows": 102
+    },
+    "intervention_cases": {
+      "previewRows": 100,
+      "totalRows": 352
+    },
+    "recall_cases": {
+      "previewRows": 60,
+      "totalRows": 60
+    },
+    "firmware_campaigns": {
+      "previewRows": 1,
+      "totalRows": 1
+    },
+    "firmware_execution": {
+      "previewRows": 20,
+      "totalRows": 20
+    },
+    "audit_log": {
+      "previewRows": 26,
+      "totalRows": 26
+    },
+    "ticket_status_history": {
+      "previewRows": 100,
+      "totalRows": 558
+    },
+    "risk_register": {
+      "previewRows": 100,
+      "totalRows": 251
+    },
+    "relationship_map": {
+      "previewRows": 38,
+      "totalRows": 38
+    },
+    "QA_validation": {
+      "previewRows": 74,
+      "totalRows": 74
+    },
+    "data_dictionary": {
+      "previewRows": 100,
+      "totalRows": 281
+    },
+    "Golden_scenarios": {
+      "previewRows": 5,
+      "totalRows": 5
+    }
+  },
+  "note": "Frontend preview capped at 100 rows per sheet. Full workbook must be imported into PostgreSQL for complete operations."
+}
