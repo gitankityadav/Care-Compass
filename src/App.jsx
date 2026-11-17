@@ -79,8 +79,6 @@ function App(){
   const [refreshKey,setRefreshKey]=useState(0)
   const [scenarioBusy,setScenarioBusy]=useState('')
   const [scenarioResults,setScenarioResults]=useState({})
-  const [nurseActionBusy,setNurseActionBusy]=useState(false)
-  const [nurseNote,setNurseNote]=useState('')
   const [nurseFilter,setNurseFilter]=useState('All')
   const [logisticsStage,setLogisticsStage]=useState('All')
   const [activeNurseId,setActiveNurseId]=useState(workbook.nurses[0]?.nurse_id||'')
@@ -177,7 +175,6 @@ function App(){
   },[])
 
   const rows=tab==='patients'?data.patients:tab==='logistics'?data.shipments:tab==='ops'?data.devices:tab==='staff'?data.nurses:tab==='resilience'?data.alerts:[]
-  const activeNurse=data.nurses.find(n=>n.id===activeNurseId)
   const nurseAssignments=data.operations.nurseAssignments.filter(a=>a.nurse_id===activeNurseId&&a.active_status===true)
   const assignedPatientIds=new Set(nurseAssignments.map(a=>a.patient_id))
   const assignedNursePatients=data.patients.filter(p=>assignedPatientIds.has(p.id))
