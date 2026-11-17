@@ -83,6 +83,8 @@ function App(){
   const [nurseNote,setNurseNote]=useState('')
   const [nurseFilter,setNurseFilter]=useState('All')
   const [logisticsStage,setLogisticsStage]=useState('All')
+  const [activeNurseId,setActiveNurseId]=useState(workbook.nurses[0]?.nurse_id||'')
+  const [workflowBusy,setWorkflowBusy]=useState(false)
   useEffect(()=>{let live=true;loadDatabase().then(remote=>{if(live){setData(remote);setDbStatus('connected');setDbError('')}}).catch(e=>{if(live){setDbStatus('offline');setDbError(e.message)}});return()=>{live=false}},[refreshKey])
   const refreshDatabase=()=>setRefreshKey(x=>x+1)
   async function runScenario(id){
@@ -108,16 +110,16 @@ function App(){
   function persist(next){setData(next);if(dbStatus!=='connected')localStorage.setItem('cc-data',JSON.stringify(next))}
   function go(id){setTab(id);setQuery('');setFilter('All');setSelected(null);window.scrollTo({top:0,behavior:'smooth'})}
   function signOut(){localStorage.removeItem('cc-user');setUser(null)}
-  async function persistWorkflowAction({table,id,patch,action,details={}}){
+  async function persistWorkflowAction({table,id,patch,action,event}){
+    setWorkflowBusy(true)
     try{
-      if(dbStatus!=='connected')throw Error('PostgreSQL is offline. Workflow actions require a live database connection.')
-      const response=await fetch(`${API_BASE}/api/data/${table}/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Name':user?.name||'Demo User','X-User-Role':user?.role||'Nurse'},body:JSON.stringify(patch)})
+      if(dbStatus!=='connected')throw Error('PostgreSQL is offline. Connect the API before saving operational actions.')
+      const response=await fetch(`${API_BASE}/api/data/${table}/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)})
       const body=await response.json()
       if(!response.ok)throw Error(body.detail?.error||body.error||'Could not save workflow action')
-      refreshDatabase()
-      notify(action+' saved to PostgreSQL')
-      setSelected(null)
-    }catch(e){notify('Action not saved: '+e.message)}
+      if(event){const er=await fetch(`${API_BASE}/api/data/shipment_events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shipment_event_id:'SHE_UI_'+Date.now(),shipment_id:event.shipment_id,event_status:event.event_status,event_datetime_utc:new Date().toISOString(),recorded_by:user?.name||'Logistics Manager',scenario_id:null})});const eb=await er.json();if(!er.ok)throw Error(eb.detail?.error||eb.error||'Shipment event could not be recorded')}
+      refreshDatabase();notify(action+' saved to PostgreSQL');setSelected(null)
+    }catch(e){notify('Action not saved: '+e.message)}finally{setWorkflowBusy(false)}
   }
   async function update(collection,id,patch,action){
     const map={patients:['patients',p=>({assigned_nurse_id:data.nurses.find(n=>n.name===p.nurse)?.id,discharge_status:p.status})],shipments:['logistics_shipments',p=>({shipment_status:p.status})],devices:['medical_devices',p=>({operational_status:p.status})],nurses:['nurses',p=>({employment_status:p.status})],alerts:['resilience_alerts',p=>({alert_status:p.status})]}[collection]
@@ -175,10 +177,13 @@ function App(){
   },[])
 
   const rows=tab==='patients'?data.patients:tab==='logistics'?data.shipments:tab==='ops'?data.devices:tab==='staff'?data.nurses:tab==='resilience'?data.alerts:[]
-  const assignedNursePatients=data.patients.filter(p=>p.source?.assigned_nurse_id===user?.nurse_id||p.nurse===user?.name||p.source?.assigned_nurse_id===user?.employee_id)
-  const nurseAlerts=data.alerts.filter(a=>a.severity==='Critical'||a.severity==='High'||/patient|clinical|medical|care/i.test(a.type||''))
-  const activeNurseInterventions=data.operations.interventions.filter(x=>/open|active|pending|acknowledged|responding/i.test(x.status||''))
-  const stockExceptions=data.operations.inventory.filter(x=>Number(x.available_qty??x.on_hand_qty??0)<=Number(x.reorder_level??x.reorder_point??0))
+  const activeNurse=data.nurses.find(n=>n.id===activeNurseId)
+  const nurseAssignments=data.operations.nurseAssignments.filter(a=>a.nurse_id===activeNurseId&&a.active_status===true)
+  const assignedPatientIds=new Set(nurseAssignments.map(a=>a.patient_id))
+  const assignedNursePatients=data.patients.filter(p=>assignedPatientIds.has(p.id))
+  const nurseAlerts=data.operations.riskRegister.filter(r=>r.severity==='Critical'||r.severity==='High').map(r=>({...r,id:r.risk_id,title:r.risk_type,severity:r.severity,facility:data.hospitals.find(h=>h.hospital_id===r.hospital_id)?.hospital_name||r.hospital_id,type:'Patient risk',status:r.status,patient:data.patients.find(p=>p.id===r.patient_id)?.name||r.patient_id}))
+  const activeNurseInterventions=data.operations.interventions.filter(x=>x.assigned_nurse_id===activeNurseId&&!/completed|closed/i.test(x.status||''))
+  const stockExceptions=data.operations.inventory.filter(x=>Number(x.available_qty??x.on_hand_qty??0)<=Number(x.reorder_threshold??0))
   const visible=useMemo(()=>rows.filter(r=>Object.values(r).join(' ').toLowerCase().includes(query.toLowerCase())).filter(r=>filter==='All'||r.risk===filter||r.status===filter||r.severity===filter),[rows,query,filter])
   const activeAlerts=data.alerts.filter(a=>a.status==='Active').length
   const highRisk=data.patients.filter(p=>['High','Critical'].includes(p.risk)).length
