@@ -26,11 +26,12 @@ function CompassArt(){
   </div>
 }
 
-export default function Login({role,setRole,roles,onEnter}){
+export default function Login({onEnter}){
   const card=useRef(null)
   const [email,setEmail]=useState("nurse@carecompass.demo")
-  const [password,setPassword]=useState("CareCompass@123")
-  const submit=e=>{e.preventDefault();onEnter(email.trim())}
+  const [password,setPassword]=useState("Nurse@123")
+  const [error,setError]=useState('')
+  const submit=e=>{e.preventDefault();setError(onEnter(email.trim().toLowerCase(),password)||'')}
   const tilt=e=>{
     const el=card.current;if(!el)return
     const r=el.getBoundingClientRect()
@@ -55,10 +56,10 @@ export default function Login({role,setRole,roles,onEnter}){
         <input id="loginEmail" type="email" autoComplete="username" placeholder="you@carecompass.com" value={email} onChange={e=>setEmail(e.target.value)} required/>
         <label htmlFor="loginPassword">Password</label>
         <input id="loginPassword" type="password" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={e=>setPassword(e.target.value)} required/>
-        <label htmlFor="loginRole">Choose your role</label>
-        <select id="loginRole" value={role} onChange={e=>setRole(e.target.value)}>{roles.map(r=><option key={r}>{r}</option>)}</select>
+        <div className="eyebrow" style={{marginTop:14}}>ROLE IS ASSIGNED TO YOUR DEMO ACCOUNT</div>
+        {error&&<p role="alert" style={{color:"#fb7185",marginTop:10}}>{error}</p>}
         <button className="primary wide shine" type="submit">Sign in to command center <ChevronRight size={17}/></button>
-        <small>Demo sign-in · Role-based workspace preview · Identity verification is not enabled</small>
+        <small>Demo environment · Preconfigured staff accounts · No external identity provider</small>
       </form>
     </div>
   </div>
