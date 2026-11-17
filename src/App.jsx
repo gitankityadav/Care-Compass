@@ -8,8 +8,8 @@ import Login from './components/Login'
 import workbook from './data/workbook-sample.json'
 import './styles/app.css'
 
-const modules=[['twin','Executive Twin',Activity],['patients','Patient Command',Users],['logistics','Logistics Tower',Truck],['ops','Service Ops',Wrench],['staff','Nurse Mobility',Stethoscope],['resilience','Resilience Center',ShieldCheck]]
-const shortLabel={twin:'Twin',patients:'Patients',logistics:'Logistics',ops:'Ops',staff:'Staff',resilience:'Resilience'}
+const modules=[['twin','Executive Twin',Activity],['patients','Patient Command',Users],['logistics','Logistics Tower',Truck],['ops','Service Ops',Wrench],['staff','Nurse Mobility',Stethoscope],['resilience','Resilience Center',ShieldCheck],['trigger','Clinical Alert Desk',Bell]]
+const shortLabel={twin:'Twin',patients:'Patients',logistics:'Logistics',ops:'Ops',staff:'Staff',resilience:'Resilience',trigger:'Trigger'}
 const hospitalById=Object.fromEntries(workbook.hospitals.map(h=>[h.hospital_id,h]))
 const nurseById=Object.fromEntries(workbook.nurses.map(n=>[n.nurse_id,n]))
 
@@ -35,9 +35,9 @@ const initial={
   meta:{source:'Care Compass Synthetic Data.xlsx',asOf:new Date().toISOString(),preview:true,previewRows:100,sheetCount:32,sheets:Object.keys(workbook)}
 }
 
-const roles=['Administrator','Doctor','Nurse','Logistics Manager','Technician','Auditor']
-const access={Administrator:['twin','patients','logistics','ops','staff','resilience'],Doctor:['twin','patients','resilience'],Nurse:['patients','staff'],'Logistics Manager':['twin','logistics','resilience'],Technician:['ops','resilience'],Auditor:['twin','patients','logistics','ops','staff','resilience']}
-const descriptions={patients:'Review patient risk, care pathways, assignments and intervention status.',logistics:'Monitor supply movements, destination facilities and shipment exceptions.',ops:'Track medical device condition, maintenance and biomedical service dispatch.',staff:'Review nurse availability, specialties, workload and assignments.',resilience:'Manage operational threats, facility disruptions and response status.'}
+const roles=['Administrator','Doctor','Nurse','Logistics Manager','Technician','Auditor','Clinical Dispatcher']
+const access={Administrator:['twin','patients','logistics','ops','staff','resilience'],Doctor:['twin','patients','resilience'],Nurse:['patients','staff'],'Logistics Manager':['twin','logistics','resilience'],Technician:['ops','resilience'],Auditor:['twin','patients','logistics','ops','staff','resilience'],'Clinical Dispatcher':['trigger']}
+const descriptions={patients:'Review patient risk, care pathways, assignments and intervention status.',logistics:'Monitor supply movements, destination facilities and shipment exceptions.',ops:'Track medical device condition, maintenance and biomedical service dispatch.',staff:'Review nurse availability, specialties and workload.',resilience:'Manage operational threats, facility disruptions and response status.',trigger:'Create a clinical event and route it to the assigned nurse for response.'}
 const scenarios=[
   ['Storm disruption logistics response','3 critical shipments halted · Regional supply continuity','HIGH PRI','logistics',CloudLightning,'rose'],
   ['Missed or delayed patient therapy','Identify affected patients and nearest available nurse','CLINICAL','patients',Syringe,'cyan'],
@@ -81,7 +81,11 @@ function App(){
   const [scenarioResults,setScenarioResults]=useState({})
   const [nurseFilter,setNurseFilter]=useState('All')
   const [logisticsStage,setLogisticsStage]=useState('All')
-  const [activeNurseId,setActiveNurseId]=useState(workbook.nurses[0]?.nurse_id||'')
+  const [activeNurseId,setActiveNurseId]=useState('NUR00017')
+  const [triggerPatientId,setTriggerPatientId]=useState('PAT000004')
+  const [triggerSeverity,setTriggerSeverity]=useState('Critical')
+  const [triggerType,setTriggerType]=useState('Deteriorating patient condition')
+  const [triggerNote,setTriggerNote]=useState('Patient requires immediate clinical reassessment.')
   const [workflowBusy,setWorkflowBusy]=useState(false)
   useEffect(()=>{let live=true;loadDatabase().then(remote=>{if(live){setData(remote);setDbStatus('connected');setDbError('')}}).catch(e=>{if(live){setDbStatus('offline');setDbError(e.message)}});return()=>{live=false}},[refreshKey])
   const refreshDatabase=()=>setRefreshKey(x=>x+1)
@@ -206,7 +210,7 @@ function App(){
 
   if(!user)return <>
     <Background/>
-    <Login role={role} setRole={setRole} roles={roles} onEnter={email=>{const name=email.split('@')[0].replace(/[._-]+/g,' ');const u={name,email,role};setUser(u);localStorage.setItem('cc-user',JSON.stringify(u));setTab(access[role][0])}}/>
+    <Login onEnter={(email,password)=>{const accounts={'nurse.sophia.jones@carecompass.demo':{password:'Nurse@123',name:'Sophia Jones',role:'Nurse',nurseId:'NUR00017'},'logistics.daniel.brooks@carecompass.demo':{password:'Logistics@123',name:'Daniel Brooks',role:'Logistics Manager'},'dispatcher@carecompass.demo':{password:'Dispatch@123',name:'Care Operations Desk',role:'Clinical Dispatcher'}};const account=accounts[email];if(!account||account.password!==password)return 'Email or password is incorrect. Use a configured Care Compass demo account.';const u={name:account.name,email,role:account.role};setUser(u);localStorage.setItem('cc-user',JSON.stringify(u));if(account.nurseId)setActiveNurseId(account.nurseId);setTab(access[account.role][0]);return ''}}/>
   </>
 
   const heads=tab==='patients'?['Patient','Facility','Risk','Care pathway','Assigned nurse','Status']:tab==='logistics'?['Shipment','Origin','Destination','Supply','Quantity','Status','ETA']:tab==='ops'?['Device','Facility','Unit','Health score','Status','Ticket','Technician']:tab==='staff'?['Nurse','Facility','Specialty','Workload','Status']:['Alert','Facility','Type','Severity','Status']
@@ -259,9 +263,25 @@ function App(){
         </div>
 
 
+        {user.role==='Clinical Dispatcher'&&tab==='trigger'?<section className="workflow-page">
+          <div className="workflow-banner"><div><span className="eyebrow">CLINICAL ALERT DESK · EVENT SIMULATOR</span><h2>Trigger a patient safety alert</h2><p>Create a realistic operational event and send it to Sophia Jones's Nurse Spark command center.</p></div><span className="tag red">LIVE DEMO TRIGGER</span></div>
+          <div className="panel">
+            <div className="panel-head"><div><h2><Bell/> New clinical event</h2><p>This creates a risk-register alert and a linked nurse intervention in PostgreSQL.</p></div></div>
+            <div className="form-stack">
+              <label>Assigned nurse</label><input value="Sophia Jones · NUR00017" readOnly/>
+              <label>Patient</label><select value={triggerPatientId} onChange={e=>setTriggerPatientId(e.target.value)}>{data.patients.filter(p=>data.operations.nurseAssignments.some(a=>a.nurse_id==='NUR00017'&&a.patient_id===p.id&&a.active_status)).map(p=><option key={p.id} value={p.id}>{p.name} · {p.id} · {p.status}</option>)}</select>
+              <label>Alert category</label><select value={triggerType} onChange={e=>setTriggerType(e.target.value)}><option>Deteriorating patient condition</option><option>Missed critical observation</option><option>Abnormal vital-sign escalation</option><option>Post-treatment reassessment required</option></select>
+              <label>Severity</label><select value={triggerSeverity} onChange={e=>setTriggerSeverity(e.target.value)}><option>Critical</option><option>High</option></select>
+              <label>Clinical handover note</label><textarea rows="3" value={triggerNote} onChange={e=>setTriggerNote(e.target.value)}/>
+              <button className="primary shine" disabled={workflowBusy||dbStatus!=='connected'||!triggerPatientId} onClick={async()=>{const patient=data.patients.find(p=>p.id===triggerPatientId);if(!patient){notify('Selected patient is not available');return}const stamp=Date.now();const riskId='RSK_DEMO_'+stamp;const interventionId='INT_DEMO_'+stamp;setWorkflowBusy(true);try{const headers={'Content-Type':'application/json','X-User-Name':user.name,'X-User-Role':user.role};const risk={risk_id:riskId,patient_id:patient.id,hospital_id:patient.source?.hospital_id||workbook.patients.find(p=>p.patient_id===patient.id)?.hospital_id,risk_type:triggerType,severity:triggerSeverity,status:'Open',identified_datetime_utc:new Date().toISOString(),scenario_id:null};const intervention={intervention_id:interventionId,patient_id:patient.id,therapy_episode_id:null,assigned_nurse_id:'NUR00017',intervention_type:triggerType+' · '+triggerNote,risk_level:triggerSeverity,status:'Assigned',created_datetime_utc:new Date().toISOString(),scenario_id:null};for(const [table,body] of [['risk_register',risk],['intervention_cases',intervention]]){const response=await fetch(API_BASE+'/api/data/'+table,{method:'POST',headers,body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw Error(result.detail?.error||result.error||'Could not create '+table)}refreshDatabase();notify('Alert sent to Sophia Jones · '+riskId)}catch(e){notify('Alert trigger failed: '+e.message)}finally{setWorkflowBusy(false)}}}>{workflowBusy?'Sending alert…':'Trigger alert to Nurse Command Center'}</button>
+              {dbStatus!=='connected'&&<small className="danger-text">Connect FastAPI and PostgreSQL before triggering an alert.</small>}
+            </div>
+          </div>
+          <div className="panel"><div className="panel-head"><div><h2><Activity/> Trigger-to-response journey</h2><p>The dispatcher creates the event; Sophia sees it in Nurse Spark and updates the response.</p></div></div><div className="workflow-alert"><div className="grow"><b>1 · Trigger</b><small>Clinical Alert Desk creates a Critical/High risk record and assigned intervention.</small></div></div><div className="workflow-alert"><div className="grow"><b>2 · Review</b><small>Sophia Jones sees the new patient alert in Nurse Spark.</small></div></div><div className="workflow-alert"><div className="grow"><b>3 · Respond</b><small>Nurse acknowledges the intervention, moves it to In Progress and attends the patient.</small></div></div><div className="workflow-alert"><div className="grow"><b>4 · Resolve</b><small>Nurse closes the intervention and updates the risk status to Closed.</small></div></div></div>
+        </section>:null}
         {user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
-          <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>Assigned care & patient safety</h2><p>Select the nurse identity for this demo, review assigned patients and move each intervention through its response lifecycle.</p></div><span className="tag red">{nurseAlerts.length} HIGH-RISK CASES</span></div>
-          <div className="form-stack"><label>Demo nurse identity</label><select value={activeNurseId} onChange={e=>setActiveNurseId(e.target.value)}>{data.nurses.map(n=><option key={n.id} value={n.id}>{n.name} · {n.id} · {n.facility}</option>)}</select></div>
+          <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>Sophia Jones · Assigned care & patient safety</h2><p>Clinical alerts assigned to Sophia are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div>
+          <div className="data-notice"><b>Signed in as Sophia Jones</b><span>Registered nurse · Emergency / Med-Surg workflow · Demo staff identity</span></div>
           <div className="workflow-kpis"><div><small>ASSIGNED PATIENTS</small><strong>{assignedNursePatients.length}</strong></div><div><small>HIGH / CRITICAL RISKS</small><strong>{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length}</strong></div><div><small>OPEN INTERVENTIONS</small><strong>{activeNurseInterventions.length}</strong></div></div>
           <div className="panel"><div className="panel-head"><div><h2><AlertTriangle/> Nurse Spark alert queue</h2><p>Risk-register cases linked to this nurse's active patient assignments.</p></div><select value={nurseFilter} onChange={e=>setNurseFilter(e.target.value)}><option>All</option><option>Critical</option><option>High</option></select></div>
             {nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).filter(r=>nurseFilter==='All'||r.severity===nurseFilter).slice(0,15).map(r=><div className="workflow-alert" key={r.id}><div className={'severity '+r.severity.toLowerCase()}/><div className="grow"><b>{r.title} · {r.patient}</b><small>{r.id} · {r.facility} · {r.status}</small></div><span className={'tag '+tagTone(r.severity)}>{r.severity}</span><button className="primary" onClick={()=>setSelected({type:'nurse-risk',record:r})}>Respond</button></div>)}
@@ -279,7 +299,7 @@ function App(){
             {!activeNurseInterventions.length&&<p className="empty">No open interventions assigned to this nurse.</p>}
           </div>
         </section>:user.role==='Logistics Manager'&&tab==='logistics'?<section className="workflow-page">
-          <div className="workflow-banner"><div><span className="eyebrow">SMART LOGISTICS · SUPPLY CONTINUITY</span><h2>Inventory & shipment operations</h2><p>Identify stock below reorder threshold, choose an operational distribution centre, approve rerouting and confirm delivery.</p></div><span className="tag amber">{stockExceptions.length} STOCK EXCEPTIONS</span></div>
+          <div className="workflow-banner"><div><span className="eyebrow">SMART LOGISTICS · SUPPLY CONTINUITY</span><h2>Daniel Brooks · Inventory & shipment operations</h2><p>Identify stock below reorder threshold, choose an operational distribution centre, approve rerouting and confirm delivery.</p></div><span className="tag amber">{stockExceptions.length} STOCK EXCEPTIONS</span></div>
           <div className="workflow-kpis"><div><small>SHIPMENTS</small><strong>{data.shipments.length}</strong></div><div><small>DELAYED / EXCEPTION</small><strong>{data.shipments.filter(s=>/delay|exception/i.test(s.status)).length}</strong></div><div><small>LOW-STOCK ITEMS</small><strong>{stockExceptions.length}</strong></div></div>
           <div className="panel"><div className="panel-head"><div><h2><PackageX/> Inventory exceptions</h2><p>Available quantity compared with configured reorder threshold.</p></div></div>
             {stockExceptions.slice(0,15).map(item=><div className="workflow-alert" key={item.inventory_id}><div className="grow"><b>{item.item_name}</b><small>{item.distribution_center_id} · Available {item.available_qty} · Reorder threshold {item.reorder_threshold}</small></div><span className="tag red">REPLENISH</span></div>)}
