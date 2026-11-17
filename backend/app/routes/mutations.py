@@ -47,6 +47,7 @@ WRITABLE = {
     "nurse_patient_assignment": ["active_status"],
     "intervention_cases": ["status"],
     "inventory": ["on_hand_qty", "reserved_qty", "available_qty"],
+    "risk_register": ["status"],
 }
 
 
