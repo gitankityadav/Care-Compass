@@ -206,7 +206,7 @@ function App(){
 
   if(!user)return <>
     <Background/>
-    <Login role={role} setRole={setRole} roles={roles} onEnter={name=>{const u={name,role};setUser(u);localStorage.setItem('cc-user',JSON.stringify(u));setTab(access[role][0])}}/>
+    <Login role={role} setRole={setRole} roles={roles} onEnter={email=>{const name=email.split('@')[0].replace(/[._-]+/g,' ');const u={name,email,role};setUser(u);localStorage.setItem('cc-user',JSON.stringify(u));setTab(access[role][0])}}/>
   </>
 
   const heads=tab==='patients'?['Patient','Facility','Risk','Care pathway','Assigned nurse','Status']:tab==='logistics'?['Shipment','Origin','Destination','Supply','Quantity','Status','ETA']:tab==='ops'?['Device','Facility','Unit','Health score','Status','Ticket','Technician']:tab==='staff'?['Nurse','Facility','Specialty','Workload','Status']:['Alert','Facility','Type','Severity','Status']
