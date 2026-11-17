@@ -28,8 +28,8 @@ function CompassArt(){
 
 export default function Login({onEnter}){
   const card=useRef(null)
-  const [email,setEmail]=useState("nurse.sophia.jones@carecompass.demo")
-  const [password,setPassword]=useState("Nurse@123")
+  const [email,setEmail]=useState("")
+  const [password,setPassword]=useState("")
   const [error,setError]=useState('')
   const submit=e=>{e.preventDefault();setError(onEnter(email.trim().toLowerCase(),password)||'')}
   const tilt=e=>{
@@ -47,13 +47,13 @@ export default function Login({onEnter}){
     <div className="login-stage" onPointerMove={tilt} onPointerLeave={reset}>
       <form className="login-card" ref={card} onSubmit={submit}>
         <div className="login-glare"/>
-        <div className="brand-mark pulse"><HeartPulse/></div>
-        <div className="eyebrow">HEALTHCARE GIS COMMAND CENTER</div>
+        <img className="login-company-logo" src="/tcs-logo.svg" alt="Tata Consultancy Services"/>
+        <div className="eyebrow">TATA CONSULTANCY SERVICES · HEALTHCARE GIS COMMAND CENTER</div>
         <h1><span className="grad-text">Care Compass</span></h1>
         <EcgLine className="login-ecg"/>
         <p>Unified operational intelligence for connected care networks.</p>
         <label htmlFor="loginEmail">Email address</label>
-        <input id="loginEmail" type="email" autoComplete="username" placeholder="you@carecompass.com" value={email} onChange={e=>setEmail(e.target.value)} required/>
+        <input id="loginEmail" type="email" autoComplete="username" placeholder="Enter your assigned email" value={email} onChange={e=>setEmail(e.target.value)} required/>
         <label htmlFor="loginPassword">Password</label>
         <input id="loginPassword" type="password" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={e=>setPassword(e.target.value)} required/>
         <div className="eyebrow" style={{marginTop:14}}>ROLE IS ASSIGNED TO YOUR DEMO ACCOUNT</div>
