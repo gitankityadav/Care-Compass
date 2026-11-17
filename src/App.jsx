@@ -193,7 +193,9 @@ function App(){
     finally{setScenarioBusy('')}
   }
 
-  if(window.location.pathname==='/iot-device')return <IoTDevicePage/>\n\n  const allowed=access[user?.role||role]||access.Administrator
+  if(window.location.pathname==='/iot-device')return <IoTDevicePage/>
+
+  const allowed=access[user?.role||role]||access.Administrator
   const current=modules.find(m=>m[0]===tab)||modules[0]
   const navModules=modules.filter(m=>allowed.includes(m[0]))
   const navIndex=Math.max(0,navModules.findIndex(m=>m[0]===tab))
