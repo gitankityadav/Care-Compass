@@ -281,7 +281,7 @@ function App(){
             {!stockExceptions.length&&<p className="empty">No low-stock exceptions match the available inventory fields.</p>}
           </div>
           <div className="panel"><div className="panel-head"><div><h2><Truck/> Shipment control tower</h2><p>Open a shipment to approve a route/status update and record the delivery outcome.</p></div></div>
-            {data.shipments.filter(s=>!logisticsStage==='All'||logisticsStage==='All'||s.status===logisticsStage).slice(0,20).map(s=><div className="workflow-alert" key={s.id}><div className="grow"><b>{s.id} · {s.item}</b><small>{s.origin} → {s.destination} · ETA {s.eta}</small></div><span className={'tag '+tagTone(s.status)}>{s.status}</span><button className="secondary" onClick={()=>setSelected({type:'logistics',record:s})}>Manage</button></div>)}
+            {data.shipments.filter(s=>logisticsStage==='All'||s.status===logisticsStage).slice(0,20).map(s=><div className="workflow-alert" key={s.id}><div className="grow"><b>{s.id} · {s.item}</b><small>{s.origin} → {s.destination} · ETA {s.eta}</small></div><span className={'tag '+tagTone(s.status)}>{s.status}</span><button className="secondary" onClick={()=>setSelected({type:'logistics',record:s})}>Manage</button></div>)}
           </div>
         </section>:null}
 
