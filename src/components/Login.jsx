@@ -51,7 +51,7 @@ export default function Login({role,setRole,roles,onEnter}){
         <h1><span className="grad-text">Care Compass</span></h1>
         <EcgLine className="login-ecg"/>
         <p>Unified operational intelligence for connected care networks.</p>
-        <label htmlFor="loginName">Email address</label>
+        <label htmlFor="loginEmail">Email address</label>
         <input id="loginEmail" type="email" autoComplete="username" placeholder="you@carecompass.com" value={email} onChange={e=>setEmail(e.target.value)} required/>
         <label htmlFor="loginPassword">Password</label>
         <input id="loginPassword" type="password" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={e=>setPassword(e.target.value)} required/>
