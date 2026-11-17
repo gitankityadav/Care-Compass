@@ -24,7 +24,6 @@ PK_MAP = {
     "nurse_patient_assignment": "assignment_id",
     "intervention_cases": "intervention_id",
     "inventory": "inventory_id",
-    "resilience_alerts": "alert_id",
 }
 
 WRITABLE = {
