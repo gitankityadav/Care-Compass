@@ -1,4 +1,6 @@
-﻿from fastapi import APIRouter, HTTPException, Query
+
+from fastapi import APIRouter, HTTPException, Query
+from psycopg import sql
 from psycopg.rows import dict_row
 
 from app.database import get_db_pool
@@ -86,16 +88,72 @@ def get_table_data(
     try:
         with pool.connection() as connection:
             with connection.cursor(row_factory=dict_row) as cursor:
+
+                # Find the table's primary-key columns.
                 cursor.execute(
-                    f'SELECT * FROM "{table}" LIMIT %s OFFSET %s',
-                    (limit, offset),
+                    """
+                    SELECT a.attname
+                    FROM pg_index i
+                    JOIN pg_class t
+                        ON t.oid = i.indrelid
+                    JOIN pg_namespace n
+                        ON n.oid = t.relnamespace
+                    JOIN LATERAL
+                        unnest(i.indkey) WITH ORDINALITY
+                        AS k(attnum, ord)
+                        ON TRUE
+                    JOIN pg_attribute a
+                        ON a.attrelid = t.oid
+                        AND a.attnum = k.attnum
+                    WHERE i.indisprimary
+                      AND n.nspname = 'public'
+                      AND t.relname = %s
+                    ORDER BY k.ord
+                    """,
+                    (table,),
                 )
+
+                primary_keys = [
+                    row["attname"] for row in cursor.fetchall()
+                ]
+
+                # Apply stable ordering when a primary key exists.
+                if primary_keys:
+                    order_clause = sql.SQL(", ").join(
+                        sql.Identifier(column)
+                        for column in primary_keys
+                    )
+
+                    query = sql.SQL(
+                        'SELECT * FROM {}.{} ORDER BY {} '
+                        'LIMIT %s OFFSET %s'
+                    ).format(
+                        sql.Identifier("public"),
+                        sql.Identifier(table),
+                        order_clause,
+                    )
+
+                    cursor.execute(query, (limit, offset))
+
+                else:
+                    # Fallback for a table without a primary key.
+                    cursor.execute(
+                        sql.SQL(
+                            'SELECT * FROM {}.{} LIMIT %s OFFSET %s'
+                        ).format(
+                            sql.Identifier("public"),
+                            sql.Identifier(table),
+                        ),
+                        (limit, offset),
+                    )
+
                 rows = cursor.fetchall()
 
         return {
             "table": table,
             "limit": limit,
             "offset": offset,
+            "order_by": primary_keys,
             "rows": rows,
         }
 
