@@ -24,6 +24,7 @@ PK_MAP = {
     "nurse_patient_assignment": "assignment_id",
     "intervention_cases": "intervention_id",
     "inventory": "inventory_id",
+    "risk_register": "risk_id",
 }
 
 WRITABLE = {
@@ -72,6 +73,7 @@ def generate_audit_id():
 async def update_record(
     table: str,
     record_id: str,
+    request: Request,
     body: dict[str, Any] = Body(...)
 ):
     primary_key = PK_MAP.get(table)
@@ -175,7 +177,7 @@ async def update_record(
                             "UPDATE",
                             json.dumps(before, default=str),
                             json.dumps(updated, default=str),
-                            "CARE_COMPASS_UI",
+                            request.headers.get("x-user-name", "CARE_COMPASS_UI"),
                             scenario_id,
                         ),
                     )
