@@ -177,9 +177,9 @@ function App(){
   const [triggerType,setTriggerType]=useState('Deteriorating patient condition')
   const [triggerNote,setTriggerNote]=useState('Heart rate above configured threshold; immediate clinical reassessment required.')
   const [workflowBusy,setWorkflowBusy]=useState(false)
-  useEffect(()=>{let live=true;loadDatabase().then(remote=>{if(live){setData(remote);setDbStatus('connected');setDbError('')}}).catch(e=>{if(live){setDbStatus('offline');setDbError(e.message)}});return()=>{live=false}},[refreshKey])
+  useEffect(()=>{if(window.location.pathname==='/iot-device')return;let live=true;loadDatabase().then(remote=>{if(live){setData(remote);setDbStatus('connected');setDbError('')}}).catch(e=>{if(live){setDbStatus('offline');setDbError(e.message)}});return()=>{live=false}},[refreshKey])
   const refreshDatabase=()=>setRefreshKey(x=>x+1)
-  useEffect(()=>{if(user?.role!=='Nurse')return;let stopped=false;const poll=async()=>{try{const [riskRes,intRes]=await Promise.all([fetch(`${API_BASE}/api/data/risk_register?limit=50000`),fetch(`${API_BASE}/api/data/intervention_cases?limit=50000`)]);if(!riskRes.ok||!intRes.ok)throw Error('Nurse alert refresh failed');const [riskJson,intJson]=await Promise.all([riskRes.json(),intRes.json()]);if(!stopped)setData(prev=>({...prev,operations:{...prev.operations,riskRegister:riskJson.rows||[],interventions:intJson.rows||[]}}))}catch(e){if(!stopped){setDbStatus('offline');setDbError(e.message)}}};const timer=setInterval(poll,2500);return()=>{stopped=true;clearInterval(timer)}},[user?.role])
+  useEffect(()=>{if(window.location.pathname==='/iot-device'||user?.role!=='Nurse')return;let stopped=false;const poll=async()=>{try{const [riskRes,intRes]=await Promise.all([fetch(`${API_BASE}/api/data/risk_register?limit=50000`),fetch(`${API_BASE}/api/data/intervention_cases?limit=50000`)]);if(!riskRes.ok||!intRes.ok)throw Error('Nurse alert refresh failed');const [riskJson,intJson]=await Promise.all([riskRes.json(),intRes.json()]);if(!stopped)setData(prev=>({...prev,operations:{...prev.operations,riskRegister:riskJson.rows||[],interventions:intJson.rows||[]}}))}catch(e){if(!stopped){setDbStatus('offline');setDbError(e.message)}}};const timer=setInterval(poll,2500);return()=>{stopped=true;clearInterval(timer)}},[user?.role])
   async function runScenario(id){
     setScenarioBusy(id)
     try{
