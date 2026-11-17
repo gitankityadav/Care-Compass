@@ -79,6 +79,10 @@ function App(){
   const [refreshKey,setRefreshKey]=useState(0)
   const [scenarioBusy,setScenarioBusy]=useState('')
   const [scenarioResults,setScenarioResults]=useState({})
+  const [nurseActionBusy,setNurseActionBusy]=useState(false)
+  const [nurseNote,setNurseNote]=useState('')
+  const [nurseFilter,setNurseFilter]=useState('All')
+  const [logisticsStage,setLogisticsStage]=useState('All')
   useEffect(()=>{let live=true;loadDatabase().then(remote=>{if(live){setData(remote);setDbStatus('connected');setDbError('')}}).catch(e=>{if(live){setDbStatus('offline');setDbError(e.message)}});return()=>{live=false}},[refreshKey])
   const refreshDatabase=()=>setRefreshKey(x=>x+1)
   async function runScenario(id){
@@ -104,6 +108,18 @@ function App(){
   function persist(next){setData(next);if(dbStatus!=='connected')localStorage.setItem('cc-data',JSON.stringify(next))}
   function go(id){setTab(id);setQuery('');setFilter('All');setSelected(null);window.scrollTo({top:0,behavior:'smooth'})}
   function signOut(){localStorage.removeItem('cc-user');setUser(null)}
+  async function persistWorkflowAction({table,id,patch,action,details={}}){
+    try{
+      if(dbStatus!=='connected')throw Error('PostgreSQL is offline. Workflow actions require a live database connection.')
+      const response=await fetch(`${API_BASE}/api/data/${table}/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Name':user?.name||'Demo User','X-User-Role':user?.role||'Nurse'},body:JSON.stringify(patch)})
+      const body=await response.json()
+      if(!response.ok)throw Error(body.detail?.error||body.error||'Could not save workflow action')
+      await fetch(`${API_BASE}/api/workflow-events`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Name':user?.name||'Demo User','X-User-Role':user?.role||'Nurse'},body:JSON.stringify({event_id:`EVT-${Date.now()}`,event_type:action,entity_type:table,entity_id:id,details,performed_by:user?.name||'Demo User'})}).catch(()=>{})
+      refreshDatabase()
+      notify(action+' saved to PostgreSQL')
+      setSelected(null)
+    }catch(e){notify('Action not saved: '+e.message)}
+  }
   async function update(collection,id,patch,action){
     const map={patients:['patients',p=>({assigned_nurse_id:data.nurses.find(n=>n.name===p.nurse)?.id,discharge_status:p.status})],shipments:['logistics_shipments',p=>({shipment_status:p.status})],devices:['medical_devices',p=>({operational_status:p.status})],nurses:['nurses',p=>({employment_status:p.status})],alerts:['resilience_alerts',p=>({alert_status:p.status})]}[collection]
     try{if(dbStatus==='connected'&&map){const response=await fetch(`${API_BASE}/api/data/${map[0]}/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(map[1](patch))});if(!response.ok)throw Error((await response.json()).error||'Database update failed')}
@@ -160,6 +176,10 @@ function App(){
   },[])
 
   const rows=tab==='patients'?data.patients:tab==='logistics'?data.shipments:tab==='ops'?data.devices:tab==='staff'?data.nurses:tab==='resilience'?data.alerts:[]
+  const assignedNursePatients=data.patients.filter(p=>p.source?.assigned_nurse_id===user?.nurse_id||p.nurse===user?.name||p.source?.assigned_nurse_id===user?.employee_id)
+  const nurseAlerts=data.alerts.filter(a=>a.severity==='Critical'||a.severity==='High'||/patient|clinical|medical|care/i.test(a.type||''))
+  const activeNurseInterventions=data.operations.interventions.filter(x=>/open|active|pending|acknowledged|responding/i.test(x.status||''))
+  const stockExceptions=data.operations.inventory.filter(x=>Number(x.available_qty??x.on_hand_qty??0)<=Number(x.reorder_level??x.reorder_point??0))
   const visible=useMemo(()=>rows.filter(r=>Object.values(r).join(' ').toLowerCase().includes(query.toLowerCase())).filter(r=>filter==='All'||r.risk===filter||r.status===filter||r.severity===filter),[rows,query,filter])
   const activeAlerts=data.alerts.filter(a=>a.status==='Active').length
   const highRisk=data.patients.filter(p=>['High','Critical'].includes(p.risk)).length
@@ -235,6 +255,35 @@ function App(){
             <button className="secondary" onClick={()=>exportCsv(rows.length?rows:data.audit,tab+'-export')}><Download size={15}/> Export</button>
           </div>
         </div>
+
+
+        {user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
+          <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CLINICAL RESPONSE</span><h2>Patient safety response centre</h2><p>Review high-priority events, acknowledge the incident and record each response stage.</p></div><span className="tag red">{nurseAlerts.length} PRIORITY ALERTS</span></div>
+          <div className="workflow-kpis">
+            <div><small>ASSIGNED PATIENTS</small><strong>{assignedNursePatients.length}</strong></div>
+            <div><small>HIGH-PRIORITY ALERTS</small><strong>{nurseAlerts.length}</strong></div>
+            <div><small>OPEN INTERVENTIONS</small><strong>{activeNurseInterventions.length}</strong></div>
+          </div>
+          <div className="panel">
+            <div className="panel-head"><div><h2><AlertTriangle/> Nurse Spark alert queue</h2><p>Only patient records assigned to this nurse should be actioned in a production deployment.</p></div><select value={nurseFilter} onChange={e=>setNurseFilter(e.target.value)}><option>All</option><option>Critical</option><option>High</option></select></div>
+            {nurseAlerts.filter(a=>nurseFilter==='All'||a.severity===nurseFilter).slice(0,12).map((a,i)=><div className="workflow-alert" key={a.id}><div className={'severity '+a.severity.toLowerCase()}/><div className="grow"><b>{a.title}</b><small>{a.facility} · {a.type} · {a.id}</small></div><span className={'tag '+tagTone(a.severity)}>{a.severity}</span><button className="primary" onClick={()=>setSelected({type:'nurse-alert',record:a})}>Respond</button></div>)}
+            {!nurseAlerts.length&&<p className="empty">No high-priority alerts found in the current database records.</p>}
+          </div>
+          <div className="panel">
+            <div className="panel-head"><div><h2><HeartPulse/> My assigned patients</h2><p>Patient assignment is derived from nurse IDs in PostgreSQL.</p></div><span className="tag green">{assignedNursePatients.length} ASSIGNED</span></div>
+            {assignedNursePatients.slice(0,15).map(p=><div className="workflow-alert" key={p.id}><div className="grow"><b>{p.name}</b><small>{p.id} · {p.facility} · {p.care}</small></div><span className={'tag '+tagTone(p.risk)}>{p.risk}</span><button className="secondary" onClick={()=>setSelected({type:'patients',record:p})}>Patient profile</button></div>)}
+          </div>
+        </section>:user.role==='Logistics Manager'&&tab==='logistics'?<section className="workflow-page">
+          <div className="workflow-banner"><div><span className="eyebrow">SMART LOGISTICS · SUPPLY CONTINUITY</span><h2>Supply exception workbench</h2><p>Identify low stock, compare available distribution centres, approve movement and track delivery.</p></div><span className="tag amber">{stockExceptions.length} STOCK EXCEPTIONS</span></div>
+          <div className="workflow-kpis"><div><small>SHIPMENTS</small><strong>{data.shipments.length}</strong></div><div><small>DELAYED</small><strong>{delayed}</strong></div><div><small>STOCK EXCEPTIONS</small><strong>{stockExceptions.length}</strong></div></div>
+          <div className="panel"><div className="panel-head"><div><h2><PackageX/> Inventory requiring attention</h2><p>Based on available quantity versus configured reorder threshold.</p></div></div>
+            {stockExceptions.slice(0,12).map((item,i)=><div className="workflow-alert" key={item.inventory_id||i}><div className="grow"><b>{item.item_name||item.item_description||item.supply_category||item.inventory_id}</b><small>{item.hospital_id||item.location_id||'Facility not specified'} · Available {item.available_qty??item.on_hand_qty??'—'} · Reorder at {item.reorder_level??item.reorder_point??'—'}</small></div><span className="tag red">LOW STOCK</span></div>)}
+            {!stockExceptions.length&&<p className="empty">No low-stock exceptions match the available inventory fields.</p>}
+          </div>
+          <div className="panel"><div className="panel-head"><div><h2><Truck/> Shipment control tower</h2><p>Open a shipment to approve a route/status update and record the delivery outcome.</p></div></div>
+            {data.shipments.filter(s=>!logisticsStage==='All'||logisticsStage==='All'||s.status===logisticsStage).slice(0,20).map(s=><div className="workflow-alert" key={s.id}><div className="grow"><b>{s.id} · {s.item}</b><small>{s.origin} → {s.destination} · ETA {s.eta}</small></div><span className={'tag '+tagTone(s.status)}>{s.status}</span><button className="secondary" onClick={()=>setSelected({type:'logistics',record:s})}>Manage</button></div>)}
+          </div>
+        </section>:null}
 
         {tab==='twin'?<>
           <div className="data-notice rise" style={{'--i':1}}><b>{dbStatus==='connected'?'PostgreSQL connected':'Database '+dbStatus}</b><span>{dbStatus==='connected'?'Live records loaded from all operational tables.':dbStatus==='connecting'?'Connecting to Care Compass API…':`Local preview mode. ${dbError} Start the API and refresh.`} Coordinates are approximate and not for navigation.</span><button className="text-button" onClick={refreshDatabase}>Refresh</button></div>
