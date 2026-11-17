@@ -1,4 +1,4 @@
-import {useRef} from 'react'
+import {useRef,useState} from 'react'
 import {HeartPulse,ChevronRight} from 'lucide-react'
 import EcgLine from './EcgLine'
 
@@ -28,6 +28,9 @@ function CompassArt(){
 
 export default function Login({role,setRole,roles,onEnter}){
   const card=useRef(null)
+  const [email,setEmail]=useState("nurse@carecompass.demo")
+  const [password,setPassword]=useState("CareCompass@123")
+  const submit=e=>{e.preventDefault();onEnter(email.trim())}
   const tilt=e=>{
     const el=card.current;if(!el)return
     const r=el.getBoundingClientRect()
@@ -41,20 +44,22 @@ export default function Login({role,setRole,roles,onEnter}){
   return <div className="login">
     <CompassArt/>
     <div className="login-stage" onPointerMove={tilt} onPointerLeave={reset}>
-      <div className="login-card" ref={card}>
+      <form className="login-card" ref={card} onSubmit={submit}>
         <div className="login-glare"/>
         <div className="brand-mark pulse"><HeartPulse/></div>
         <div className="eyebrow">HEALTHCARE GIS COMMAND CENTER</div>
         <h1><span className="grad-text">Care Compass</span></h1>
         <EcgLine className="login-ecg"/>
         <p>Unified operational intelligence for connected care networks.</p>
-        <label htmlFor="loginName">Your display name</label>
-        <input id="loginName" placeholder="e.g. Ankit Yadav" defaultValue="Ankit Yadav"/>
+        <label htmlFor="loginName">Email address</label>
+        <input id="loginEmail" type="email" autoComplete="username" placeholder="you@carecompass.com" value={email} onChange={e=>setEmail(e.target.value)} required/>
+        <label htmlFor="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={e=>setPassword(e.target.value)} required/>
         <label htmlFor="loginRole">Choose your role</label>
         <select id="loginRole" value={role} onChange={e=>setRole(e.target.value)}>{roles.map(r=><option key={r}>{r}</option>)}</select>
-        <button className="primary wide shine" onClick={()=>onEnter(document.getElementById('loginName').value||'Demo User')}>Enter command center <ChevronRight size={17}/></button>
-        <small>Demo authentication · Role-based navigation · Synthetic data only</small>
-      </div>
+        <button className="primary wide shine" type="submit">Sign in to command center <ChevronRight size={17}/></button>
+        <small>Demo sign-in · Role-based workspace preview · Identity verification is not enabled</small>
+      </form>
     </div>
   </div>
 }
