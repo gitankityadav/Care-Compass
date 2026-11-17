@@ -322,3 +322,108 @@ async def create_record(
             status_code=400,
             detail={"error": "Insert failed"},
         )
+
+
+@router.post("/iot/trigger", status_code=201)
+async def trigger_iot_alert(body: dict[str, Any] = Body(...)):
+    """Atomically record an IoT event, patient risk, and assigned nurse intervention."""
+    required = ("patient_id", "hospital_id", "assigned_nurse_id", "risk_type", "severity", "device_id", "observation")
+    missing = [key for key in required if not body.get(key)]
+    if missing:
+        raise HTTPException(status_code=400, detail={"error": "Missing required fields", "fields": missing})
+
+    stamp = int(time.time() * 1000)
+    risk_id = f"RSK-IOT-{stamp}"
+    intervention_id = f"INT-IOT-{stamp}"
+    event_time = body.get("event_datetime_utc") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    risk = {
+        "risk_id": risk_id,
+        "patient_id": body["patient_id"],
+        "hospital_id": body["hospital_id"],
+        "risk_type": body["risk_type"],
+        "severity": body["severity"],
+        "status": "Open",
+        "identified_datetime_utc": event_time,
+        "scenario_id": None,
+    }
+    intervention = {
+        "intervention_id": intervention_id,
+        "patient_id": body["patient_id"],
+        "therapy_episode_id": body.get("therapy_episode_id"),
+        "assigned_nurse_id": body["assigned_nurse_id"],
+        "intervention_type": f"{body['risk_type']} · {body['device_id']} · {body['observation']}",
+        "risk_level": body["severity"],
+        "status": "Assigned",
+        "created_datetime_utc": event_time,
+        "scenario_id": None,
+    }
+
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.transaction():
+                with connection.cursor(row_factory=dict_row) as cursor:
+                    for table, record, pk in (
+                        ("risk_register", risk, "risk_id"),
+                        ("intervention_cases", intervention, "intervention_id"),
+                    ):
+                        cursor.execute(
+                            """
+                            SELECT column_name
+                            FROM information_schema.columns
+                            WHERE table_schema = 'public' AND table_name = %s
+                            """,
+                            (table,),
+                        )
+                        actual = {row["column_name"] for row in cursor.fetchall()}
+                        unknown = set(record) - actual
+                        if unknown:
+                            raise HTTPException(
+                                status_code=400,
+                                detail={"error": f"Unexpected columns for {table}", "columns": sorted(unknown)},
+                            )
+                        cols = list(record)
+                        cursor.execute(
+                            sql.SQL("INSERT INTO {} ({}) VALUES ({}) RETURNING *").format(
+                                sql.Identifier(table),
+                                sql.SQL(", ").join(sql.Identifier(col) for col in cols),
+                                sql.SQL(", ").join(sql.Placeholder() for _ in cols),
+                            ),
+                            [record[col] for col in cols],
+                        )
+                        created = cursor.fetchone()
+                        if created is None or created.get(pk) != record[pk]:
+                            raise RuntimeError(f"Could not persist {table}")
+
+                    cursor.execute(
+                        """
+                        INSERT INTO audit_log (
+                            audit_id, event_datetime_utc, entity_type, entity_id,
+                            action, previous_value, new_value, performed_by, scenario_id
+                        ) VALUES (%s, NOW(), %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            generate_audit_id(), "iot_device", body["device_id"],
+                            "TRIGGER_ALERT",
+                            json.dumps(None),
+                            json.dumps({
+                                "patient_id": body["patient_id"],
+                                "risk_id": risk_id,
+                                "intervention_id": intervention_id,
+                                "severity": body["severity"],
+                                "observation": body["observation"],
+                            }),
+                            body.get("device_name", "Bedside IoT Monitor"),
+                            "UI",
+                        ),
+                    )
+        return {
+            "event_id": f"IOT-{stamp}",
+            "risk": risk,
+            "intervention": intervention,
+            "message": "IoT event and nurse response records committed",
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail={"error": "IoT event could not be committed", "reason": str(exc)})
