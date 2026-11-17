@@ -592,3 +592,6 @@ footer{color:#718198!important}
 .iot-flow-steps span{font-size:11px;line-height:1.5;color:#697b91}
 @media(max-width:850px){.iot-device-layout{grid-template-columns:1fr}.iot-flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.iot-standalone-head{flex-wrap:wrap;padding:14px 0}.nurse-device-launch{align-items:flex-start;flex-direction:column}}
 @media(max-width:520px){.iot-standalone{padding:0 14px 30px}.iot-flow-steps{grid-template-columns:1fr}.iot-device-layout .panel,.iot-flow.panel{padding:16px}}
+
+.db-warning{background:#fff8e8!important;border-color:#f0d7a1!important}
+.db-warning b{color:#8b5700!important}.db-warning span{color:#795f32!important}
