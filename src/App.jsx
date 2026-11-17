@@ -58,6 +58,96 @@ async function loadDatabase(){
  return {patients:db.patients.map(p=>({id:p.patient_id,name:[p.first_name,p.last_name].filter(Boolean).join(' '),age:p.age,facility:hs[p.hospital_id]?.hospital_name||p.hospital_id,risk:p.acuity_level||'Moderate',care:p.encounter_type||p.primary_condition||'Care pathway',nurse:ns[p.assigned_nurse_id]?.full_name||p.assigned_nurse_id||'Unassigned',status:p.discharge_status||'Active',detail:p.primary_condition||'Synthetic patient record',source:p})),shipments:db.logistics_shipments.map(x=>({id:x.shipment_id,origin:[x.origin_city,x.origin_state].filter(Boolean).join(', '),destination:[x.destination_city,x.destination_state].filter(Boolean).join(', '),item:x.item_description||x.supply_category,quantity:x.quantity,status:x.shipment_status||'Unknown',eta:x.estimated_delivery_utc||'Not available',risk:x.priority||'Moderate',source:x})),devices:db.medical_devices.map(x=>({id:x.device_id,name:[x.manufacturer,x.model,x.device_type].filter(Boolean).join(' '),facility:hs[x.hospital_id]?.hospital_name||x.hospital_id,unit:x.location_unit,health:x.health_score,status:x.operational_status,ticket:'See service tickets',technician:'Unassigned',source:x})),nurses:db.nurses.map(x=>({id:x.nurse_id,name:x.full_name,facility:hs[x.hospital_id]?.hospital_name||x.hospital_id,specialty:x.specialty,load:x.current_patient_load,capacity:x.patient_assignment_capacity,status:x.employment_status,source:x})),alerts:db.resilience_alerts.map(x=>({id:x.alert_id,title:x.title,facility:hs[x.hospital_id]?.hospital_name||x.affected_city||x.hospital_id,severity:x.severity||'Moderate',status:x.alert_status||'Active',type:x.alert_type,source:x})),audit:db.audit_log.map(a=>({id:a.audit_id,action:a.action,entity:a.entity_type+' '+a.entity_id,actor:a.performed_by,at:a.event_datetime_utc})).reverse(),operations:{therapyEpisodes:db.therapy_episodes,therapySessions:db.therapy_sessions,nurseAssignments:db.nurse_patient_assignment,deviceAssignments:db.device_patient_assignment,supplyPlans:db.patient_supply_plan,shipmentAllocations:db.shipment_patient_allocation,shipmentEvents:db.shipment_events,inventory:db.inventory,distributionCenters:db.distribution_centers,suppliers:db.suppliers,alarms:db.device_alarms,serviceTickets:db.service_tickets,workOrders:db.work_orders,interventions:db.intervention_cases,recalls:db.recall_cases,firmwareCampaigns:db.firmware_campaigns,firmwareExecution:db.firmware_execution,ticketHistory:db.ticket_status_history,riskRegister:db.risk_register},meta:{source:'PostgreSQL · Care Compass Synthetic Data',preview:false,sheetCount:32},hospitals:db.hospitals}
 }
 
+
+function IoTDevicePage(){
+  const assigned=workbook.nurse_patient_assignment.filter(a=>a.nurse_id==='NUR00017'&&a.active_status);
+  const assignedPatients=assigned.map(a=>workbook.patients.find(p=>p.patient_id===a.patient_id)).filter(Boolean);
+  const [patientId,setPatientId]=useState(assignedPatients[0]?.patient_id||'PAT000004');
+  const [severity,setSeverity]=useState('Critical');
+  const [eventType,setEventType]=useState('Abnormal heart-rate threshold');
+  const [observation,setObservation]=useState('Heart rate has exceeded the configured safety threshold. Immediate nurse assessment requested.');
+  const [apiState,setApiState]=useState('connecting');
+  const [apiMessage,setApiMessage]=useState('Checking connection to the central command center…');
+  const [sending,setSending]=useState(false);
+  const [lastEvent,setLastEvent]=useState(null);
+  useEffect(()=>{
+    let active=true;
+    const check=async()=>{
+      try{
+        const res=await fetch(API_BASE+'/api/data/nurses?limit=1');
+        if(!res.ok)throw new Error('FastAPI returned '+res.status);
+        if(active){setApiState('connected');setApiMessage('Connected to Care Compass central command center · PostgreSQL');}
+      }catch(e){if(active){setApiState('offline');setApiMessage(e.message+' · Start FastAPI on port 8000.');}}
+    };
+    check();const timer=setInterval(check,5000);
+    return()=>{active=false;clearInterval(timer)};
+  },[]);
+  const patient=assignedPatients.find(p=>p.patient_id===patientId);
+  const send=async()=>{
+    if(!patient)return;
+    setSending(true);
+    try{
+      const therapy=workbook.therapy_episodes.find(t=>t.patient_id===patient.patient_id);
+      const res=await fetch(API_BASE+'/api/iot/trigger',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        patient_id:patient.patient_id,hospital_id:patient.hospital_id,assigned_nurse_id:'NUR00017',
+        risk_type:eventType,severity,device_id:'CC-IOT-ICU-014',device_name:'Bedside Patient Monitor CC-IOT-ICU-014',
+        observation,therapy_episode_id:therapy?.therapy_episode_id||null,event_datetime_utc:new Date().toISOString()
+      })});
+      const result=await res.json();
+      if(!res.ok)throw new Error(result.detail?.error||result.error||'The central command center rejected the event');
+      setLastEvent({eventId:result.event_id,riskId:result.risk.risk_id,interventionId:result.intervention.intervention_id,patient:patient.first_name+' '+patient.last_name,at:new Date().toLocaleTimeString()});
+    }catch(e){setApiMessage('Transmission failed: '+e.message);setApiState('offline');}
+    finally{setSending(false);}
+  };
+  return <div className="iot-standalone">
+    <header className="iot-standalone-head">
+      <div className="brand"><img className="company-logo" src="/tcs-logo.svg" alt="Tata Consultancy Services"/><div className="brand-divider"/><div><b>Care Compass</b><small>CONNECTED CARE NETWORK</small></div></div>
+      <span className={'iot-connection '+(apiState==='connected'?'online':'offline')}><i/>{apiState==='connected'?'CONNECTED TO CENTRAL COMMAND':apiState==='connecting'?'CONNECTING…':'CENTRAL COMMAND OFFLINE'}</span>
+      <a href="/" className="iot-back-link">Open Nurse Command Center ↗</a>
+    </header>
+    <main className="iot-standalone-main">
+      <div className="iot-kicker">CONNECTED MEDICAL DEVICE / ICU-014</div>
+      <h1>Bedside IoT Emergency Trigger</h1>
+      <p className="iot-intro">A bedside patient monitor is connected to the Care Compass central command center. Press the physical alert control to transmit a patient safety event directly to the assigned nurse.</p>
+      <div className="iot-device-layout">
+        <section className="iot-device-visual panel">
+          <div className="iot-device-top"><span className="iot-led"/><b>DEVICE ONLINE</b><small>CC-IOT-ICU-014</small></div>
+          <img src="/iot-emergency-button.svg" alt="Hand pressing the red bedside emergency alert button"/>
+          <div className="iot-device-caption"><b>BEDSIDЕ PATIENT MONITOR</b><span>Signal: Connected · Channel: Clinical Safety</span></div>
+          <button className="iot-red-trigger" onClick={send} disabled={apiState!=='connected'||sending||!patientId}>
+            <span className="trigger-ring"><span/></span>
+            <b>{sending?'TRANSMITTING…':'PRESS TO TRIGGER ALERT'}</b>
+            <small>{apiState==='connected'?'Send event to Nurse Sophia Jones':'Waiting for central command connection'}</small>
+          </button>
+          {lastEvent&&<div className="iot-transmitted"><b><CheckCircle2 size={17}/> EVENT TRANSMITTED</b><span>{lastEvent.eventId} · {lastEvent.at}</span><small>Risk {lastEvent.riskId} and intervention {lastEvent.interventionId} committed for {lastEvent.patient}.</small></div>}
+          <div className="iot-connection-detail">{apiMessage}</div>
+        </section>
+        <section className="iot-event-config panel">
+          <div className="iot-section-label">EVENT CONFIGURATION</div>
+          <h2>Patient & telemetry</h2>
+          <label>Assigned nurse</label><div className="iot-readonly">Sophia Jones <span>NUR00017 · Med-Surg</span></div>
+          <label>Patient connected to this monitor</label>
+          <select value={patientId} onChange={e=>setPatientId(e.target.value)}>{assignedPatients.map(p=><option key={p.patient_id} value={p.patient_id}>{p.first_name} {p.last_name} · {p.patient_id}</option>)}</select>
+          <label>Device event</label><select value={eventType} onChange={e=>setEventType(e.target.value)}><option>Abnormal heart-rate threshold</option><option>Oxygen saturation below threshold</option><option>Blood pressure outside configured range</option><option>Patient deterioration detected</option><option>Missed critical observation</option></select>
+          <label>Alert severity</label><select value={severity} onChange={e=>setSeverity(e.target.value)}><option>Critical</option><option>High</option></select>
+          <label>Telemetry payload / observation</label><textarea rows="4" value={observation} onChange={e=>setObservation(e.target.value)}/>
+          <div className="iot-payload-note"><Activity size={16}/><span>On trigger, FastAPI writes the patient risk, nurse intervention and device audit event in one database transaction.</span></div>
+        </section>
+      </div>
+      <section className="iot-flow panel">
+        <div className="iot-section-label">LIVE RESPONSE JOURNEY</div>
+        <h2>Device-to-care workflow</h2>
+        <div className="iot-flow-steps">
+          <div><b>01</b><strong>Device trigger</strong><span>Bedside monitor sends telemetry</span></div>
+          <div><b>02</b><strong>Central command</strong><span>FastAPI records the event in PostgreSQL</span></div>
+          <div><b>03</b><strong>Nurse receives alert</strong><span>Sophia's open command center refreshes automatically</span></div>
+          <div><b>04</b><strong>Clinical response</strong><span>Acknowledge · Attend · Resolve</span></div>
+        </div>
+      </section>
+    </main>
+  </div>;
+}
+
 function App(){
   const [user,setUser]=useState(()=>JSON.parse(localStorage.getItem('cc-user')||'null'))
   const [role,setRole]=useState('Administrator')
@@ -103,7 +193,7 @@ function App(){
     finally{setScenarioBusy('')}
   }
 
-  const allowed=access[user?.role||role]||access.Administrator
+  if(window.location.pathname==='/iot-device')return <IoTDevicePage/>\n\n  const allowed=access[user?.role||role]||access.Administrator
   const current=modules.find(m=>m[0]===tab)||modules[0]
   const navModules=modules.filter(m=>allowed.includes(m[0]))
   const navIndex=Math.max(0,navModules.findIndex(m=>m[0]===tab))
@@ -264,25 +354,10 @@ function App(){
         </div>
 
 
-        {user.role==='IoT Device Operator'&&tab==='trigger'?<section className="workflow-page iot-page">
-          <div className="workflow-banner"><div><span className="eyebrow">CONNECTED IOT DEVICE · SIMULATOR</span><h2>Bedside patient monitor</h2><p>Simulate a live device event. Triggering the device sends a patient safety alert to Sophia Jones's Patient Command queue.</p></div><span className="tag red">LIVE DEMO TRIGGER</span></div>
-          <div className="panel">
-            <div className="panel-head"><div><h2><Activity/> Device telemetry & alert control</h2><p>Device CC-IOT-ICU-014 · Bedside vital-sign monitor · Connected to Sophia Jones's patient assignment.</p></div></div>
-            <div className="form-stack">
-              <div className="iot-device-status"><span className="iot-pulse"/><div><b>DEVICE ONLINE</b><small>CC-IOT-ICU-014 · ICU bedside monitor · Signal stable</small></div><span className="tag green">CONNECTED</span></div><label>Assigned nurse</label><input value="Sophia Jones · NUR00017" readOnly/>
-              <label>Patient</label><select value={triggerPatientId} onChange={e=>setTriggerPatientId(e.target.value)}>{data.patients.filter(p=>data.operations.nurseAssignments.some(a=>a.nurse_id==='NUR00017'&&a.patient_id===p.id&&a.active_status)).map(p=><option key={p.id} value={p.id}>{p.name} · {p.id} · {p.status}</option>)}</select>
-              <label>Simulated device event</label><select value={triggerType} onChange={e=>setTriggerType(e.target.value)}><option>Deteriorating patient condition</option><option>Missed critical observation</option><option>Abnormal vital-sign escalation</option><option>Post-treatment reassessment required</option></select>
-              <label>Severity</label><select value={triggerSeverity} onChange={e=>setTriggerSeverity(e.target.value)}><option>Critical</option><option>High</option></select>
-              <label>Device event payload / observation</label><textarea rows="3" value={triggerNote} onChange={e=>setTriggerNote(e.target.value)}/>
-              <button className="primary shine" disabled={workflowBusy||dbStatus!=='connected'||!triggerPatientId} onClick={async()=>{const patient=data.patients.find(p=>p.id===triggerPatientId);if(!patient){notify('Selected patient is not available');return}const stamp=Date.now();const riskId='RSK_DEMO_'+stamp;const interventionId='INT_DEMO_'+stamp;setWorkflowBusy(true);try{const headers={'Content-Type':'application/json','X-User-Name':user.name,'X-User-Role':user.role};const risk={risk_id:riskId,patient_id:patient.id,hospital_id:patient.source?.hospital_id||workbook.patients.find(p=>p.patient_id===patient.id)?.hospital_id,risk_type:triggerType,severity:triggerSeverity,status:'Open',identified_datetime_utc:new Date().toISOString(),scenario_id:null};const intervention={intervention_id:interventionId,patient_id:patient.id,therapy_episode_id:data.operations.therapyEpisodes.find(t=>t.patient_id===patient.id)?.therapy_episode_id||null,assigned_nurse_id:'NUR00017',intervention_type:triggerType+' · '+triggerNote,risk_level:triggerSeverity,status:'Assigned',created_datetime_utc:new Date().toISOString(),scenario_id:null};for(const [table,body] of [['risk_register',risk],['intervention_cases',intervention]]){const response=await fetch(API_BASE+'/api/data/'+table,{method:'POST',headers,body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw Error(result.detail?.error||result.error||'Could not create '+table)}refreshDatabase();notify('Alert sent to Sophia Jones · '+riskId)}catch(e){notify('Alert trigger failed: '+e.message)}finally{setWorkflowBusy(false)}}}>{workflowBusy?'Sending alert…':'TRANSMIT DEVICE ALERT TO NURSE'}</button>
-              {dbStatus!=='connected'&&<small className="danger-text">Connect FastAPI and PostgreSQL before triggering an alert.</small>}
-            </div>
-          </div>
-          <div className="panel"><div className="panel-head"><div><h2><Activity/> Device-to-care response trace</h2><p>The device sends an event to PostgreSQL. Sophia's Patient Command refreshes automatically and displays the alert.</p></div></div><div className="workflow-alert"><div className="grow"><b>1 · Trigger</b><small>IoT monitor transmits a Critical/High event; the API writes a patient risk and nurse intervention record.</small></div></div><div className="workflow-alert"><div className="grow"><b>2 · Review</b><small>Sophia Jones sees the new patient alert in Nurse Spark.</small></div></div><div className="workflow-alert"><div className="grow"><b>3 · Respond</b><small>Nurse acknowledges the intervention, moves it to In Progress and attends the patient.</small></div></div><div className="workflow-alert"><div className="grow"><b>4 · Resolve</b><small>Nurse closes the intervention and updates the risk status to Closed.</small></div></div></div>
-        </section>:null}
         {user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
           <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>Sophia Jones · Assigned care & patient safety</h2><p>Clinical alerts assigned to Sophia are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div>
           <div className="data-notice"><b>Signed in as Sophia Jones</b><span>Registered nurse · Emergency / Med-Surg workflow · Demo staff identity</span></div>
+          <div className="nurse-device-launch"><div><b>Bedside IoT monitor</b><span>Open the connected device panel in a separate tab. Keep this nurse command center open to receive the alert.</span></div><button className="primary" onClick={()=>window.open('/iot-device','_blank','noopener,noreferrer')}>Open IoT Device Panel ↗</button></div>
           <div className="workflow-kpis"><div><small>ASSIGNED PATIENTS</small><strong>{assignedNursePatients.length}</strong></div><div><small>HIGH / CRITICAL RISKS</small><strong>{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length}</strong></div><div><small>OPEN INTERVENTIONS</small><strong>{activeNurseInterventions.length}</strong></div></div>
           <div className="panel"><div className="panel-head"><div><h2><AlertTriangle/> Nurse Spark alert queue</h2><p>Risk-register cases linked to this nurse's active patient assignments.</p></div><select value={nurseFilter} onChange={e=>setNurseFilter(e.target.value)}><option>All</option><option>Critical</option><option>High</option></select></div>
             {nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)&&!['Closed','Resolved'].includes(r.status)).filter(r=>nurseFilter==='All'||r.severity===nurseFilter).slice(0,15).map(r=><div className="workflow-alert" key={r.id}><div className={'severity '+r.severity.toLowerCase()}/><div className="grow"><b>{r.title} · {r.patient}</b><small>{r.id} · {r.facility} · {r.status}</small></div><span className={'tag '+tagTone(r.severity)}>{r.severity}</span><button className="primary" onClick={()=>setSelected({type:'nurse-risk',record:r})}>Respond</button></div>)}
