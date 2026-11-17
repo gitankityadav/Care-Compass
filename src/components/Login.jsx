@@ -28,7 +28,7 @@ function CompassArt(){
 
 export default function Login({onEnter}){
   const card=useRef(null)
-  const [email,setEmail]=useState("nurse@carecompass.demo")
+  const [email,setEmail]=useState("nurse.sophia.jones@carecompass.demo")
   const [password,setPassword]=useState("Nurse@123")
   const [error,setError]=useState('')
   const submit=e=>{e.preventDefault();setError(onEnter(email.trim().toLowerCase(),password)||'')}
