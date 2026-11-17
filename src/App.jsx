@@ -179,7 +179,7 @@ function App(){
   const assignedPatientIds=new Set(nurseAssignments.map(a=>a.patient_id))
   const assignedNursePatients=data.patients.filter(p=>assignedPatientIds.has(p.id))
   const nurseSessions=data.operations.therapySessions.filter(s=>assignedPatientIds.has(s.patient_id))
-  const nurseAlerts=data.operations.riskRegister.filter(r=>r.severity==='Critical'||r.severity==='High').map(r=>({...r,id:r.risk_id,title:r.risk_type,severity:r.severity,facility:data.hospitals.find(h=>h.hospital_id===r.hospital_id)?.hospital_name||r.hospital_id,type:'Patient risk',status:r.status,patient:data.patients.find(p=>p.id===r.patient_id)?.name||r.patient_id}))
+  const nurseAlerts=data.operations.riskRegister.filter(r=>r.severity==='Critical'||r.severity==='High').map(r=>({...r,id:r.risk_id,title:r.risk_type,severity:r.severity,facility:(data.hospitals||workbook.hospitals).find(h=>h.hospital_id===r.hospital_id)?.hospital_name||r.hospital_id,type:'Patient risk',status:r.status,patient:data.patients.find(p=>p.id===r.patient_id)?.name||r.patient_id}))
   const activeNurseInterventions=data.operations.interventions.filter(x=>x.assigned_nurse_id===activeNurseId&&!/completed|closed/i.test(x.status||''))
   const stockExceptions=data.operations.inventory.filter(x=>Number(x.available_qty??x.on_hand_qty??0)<=Number(x.reorder_threshold??0))
   const visible=useMemo(()=>rows.filter(r=>Object.values(r).join(' ').toLowerCase().includes(query.toLowerCase())).filter(r=>filter==='All'||r.risk===filter||r.status===filter||r.severity===filter),[rows,query,filter])
