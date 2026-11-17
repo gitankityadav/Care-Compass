@@ -331,7 +331,7 @@ function App(){
       <header className="topbar">
         <div className="crumb"><span>Care Compass</span><ChevronRight size={14}/><b>{current[1]}</b></div>
         <div className="top-actions">
-          <span className="live"><i/> {dbStatus==='connected'?'POSTGRES LIVE':dbStatus==='connecting'?'CONNECTING TO POSTGRES':'POSTGRES OFFLINE'}</span>
+          <span className={'live '+(dbStatus==='connected'?'is-connected':dbStatus==='offline'?'is-offline':'')} title={dbError||'PostgreSQL connection status'}><i/> {dbStatus==='connected'?'POSTGRES LIVE':dbStatus==='connecting'?'CONNECTING TO POSTGRES':'POSTGRES OFFLINE'}</span>
           <button className="icon-button" aria-label="Operations Copilot" onClick={()=>setCopilot(!copilot)}><Brain size={18}/></button>
           <button className="icon-button" aria-label="Alerts" onClick={()=>notify(activeAlerts+' active alerts')}><Bell size={18}/>{activeAlerts>0&&<em className="dot-badge"/>}</button>
           <button className="icon-button only-compact" aria-label="Sign out" onClick={signOut}><LogOut size={17}/></button>
