@@ -50,7 +50,7 @@ const initials=name=>name.split(' ').map(x=>x[0]).join('').slice(0,2)
 const tagTone=v=>/critical|delay|fail|fault/i.test(v)?'red':/high|moderate|warn|monitor|maint/i.test(v)?'amber':'green'
 
 
-const API_BASE=(import.meta.env.VITE_API_URL||'http://localhost:4000').replace(/\/$/,'')
+const API_BASE=(import.meta.env.VITE_API_URL||'https://care-compass-fastapi.onrender.com').replace(/\/$/,'')
 async function loadDatabase(){
  const names=['hospitals','patients','nurses','medical_devices','logistics_shipments','resilience_alerts','distribution_centers','suppliers','inventory','therapy_episodes','therapy_sessions','nurse_patient_assignment','device_patient_assignment','patient_supply_plan','shipment_patient_allocation','shipment_events','technician_master','device_alarms','service_tickets','work_orders','intervention_cases','recall_cases','firmware_campaigns','firmware_execution','audit_log','ticket_status_history','risk_register']
  const pairs=await Promise.all(names.map(async n=>{const r=await fetch(`${API_BASE}/api/data/${n}?limit=50000`);if(!r.ok)throw Error(`Could not load ${n}: ${r.status}`);return [n,(await r.json()).rows||[]]}))
@@ -114,7 +114,6 @@ function App(){
       const response=await fetch(`${API_BASE}/api/data/${table}/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Name':user?.name||'Demo User','X-User-Role':user?.role||'Nurse'},body:JSON.stringify(patch)})
       const body=await response.json()
       if(!response.ok)throw Error(body.detail?.error||body.error||'Could not save workflow action')
-      await fetch(`${API_BASE}/api/workflow-events`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Name':user?.name||'Demo User','X-User-Role':user?.role||'Nurse'},body:JSON.stringify({event_id:`EVT-${Date.now()}`,event_type:action,entity_type:table,entity_id:id,details,performed_by:user?.name||'Demo User'})}).catch(()=>{})
       refreshDatabase()
       notify(action+' saved to PostgreSQL')
       setSelected(null)
