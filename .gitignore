@@ -1,9 +1,18 @@
-node_modules
-server/node_modules
+node_modules/
+server/node_modules/
 server/.env
 .env
 .DS_Store
-dist
-coverage
+dist/
+coverage/
 .env.*
 !.env.example
+
+# Python FastAPI backend
+backend/.venv*/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.vscode/
+*.log
+*.backup
