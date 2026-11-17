@@ -491,3 +491,33 @@ footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:
 .workflow-alert .primary,.workflow-alert .secondary{flex:none}
 .workflow-page .empty{padding:18px 0;color:var(--ink-3)}
 @media(max-width:760px){.workflow-banner{flex-direction:column}.workflow-kpis{grid-template-columns:1fr}.workflow-alert{flex-wrap:wrap}.workflow-alert .grow{flex-basis:100%}}
+
+/* Professional light theme refresh */
+:root{--bg:#f4f7fb;--bg-2:#edf2f8;--ink:#17263c;--ink-2:#52647b;--ink-3:#718198;--line:rgba(30,55,85,.12);--line-2:rgba(30,55,85,.18);--glass:rgba(255,255,255,.8);--glass-2:#fff;--panel:#fff;--teal:#078c83;--cyan:#1687c9;--violet:#6655bd;--rose:#d9485f;--amber:#a96a05;--green:#16845c;--grad:linear-gradient(115deg,#0a9e91 0%,#1687c9 55%,#6e5bc2 100%)}
+html{color-scheme:light}body{background:#f4f7fb;color:#17263c}select option{background:#fff;color:#17263c}::selection{background:#bdece7}
+.app-shell,.app-main,.main-content{background:#f4f7fb!important;color:#17263c}
+.sidebar,.topbar,.panel,.card,.metric-card,.stat-card,.drawer,.modal,.copilot,.login-card{background:rgba(255,255,255,.97)!important;color:#17263c!important;border-color:#dce4ee!important;box-shadow:0 8px 28px rgba(30,55,85,.06)}
+.sidebar{background:#fff!important}.topbar{background:rgba(255,255,255,.96)!important}
+.brand b,.topbar b,.panel h2,.panel h3,.workflow-banner h2,.drawer h2,.modal h2,.login-card h1{color:#17263c!important}
+.brand small,.eyebrow,.panel p,.workflow-banner p,.login-card p,.drawer small,.modal small{color:#64758c!important}
+.nav{color:#52647b!important}.nav.active{background:#e8f4f7!important;color:#087f83!important}
+.live{background:#e8f7f1!important;color:#087c59!important;border-color:#b8e4d3!important}
+.workflow-banner{background:linear-gradient(115deg,#e9f7f5,#eef3ff)!important;border-color:#d8e7ed!important}
+.workflow-kpis>div,.telemetry-card,.workflow-alert,.data-notice{background:#fff!important;border-color:#e0e7ef!important;color:#17263c}
+.workflow-kpis small,.telemetry-card small,.workflow-alert small{color:#66788f!important}
+.workflow-alert{border-bottom-color:#e8edf3!important}
+input,select,textarea{background:#fff!important;color:#17263c!important;border:1px solid #d4deea!important}
+input::placeholder,textarea::placeholder{color:#91a0b2!important}
+.secondary,.icon-button,.date-pill{background:#f0f4f8!important;color:#34465d!important;border:1px solid #dce4ed!important}
+.bottom-nav{background:rgba(255,255,255,.96)!important;border-color:#dce4ed!important}
+footer{color:#718198!important}
+.login{background:radial-gradient(ellipse at 18% 30%,#d8f2ef 0,transparent 42%),radial-gradient(ellipse at 85% 75%,#e8e4fb 0,transparent 42%),#f4f7fb!important}
+.login-card{box-shadow:0 22px 70px rgba(30,55,85,.14)!important}.login-card label{color:#52647b!important}.login-card small{color:#74839a!important}
+.compass .ring-line,.compass .tick{stroke:#a6bdca!important}.compass .cardinal{fill:#7890a6!important}
+.company-logo{width:116px;height:auto;object-fit:contain;display:block}.login-company-logo{width:190px;max-width:70%;height:auto;display:block;margin:0 auto 16px;border-radius:8px}
+.brand-divider{width:1px;height:38px;background:#dbe3ec;margin:0 4px}
+.iot-device-status{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #cfe5e5;background:#f0faf9;border-radius:14px;margin:6px 0 14px}
+.iot-device-status>div{display:flex;flex-direction:column;gap:4px;flex:1}.iot-device-status b{color:#087f78;font-size:12px;letter-spacing:.08em}.iot-device-status small{color:#62768a}
+.iot-pulse{width:12px;height:12px;border-radius:50%;background:#17a875;box-shadow:0 0 0 6px #17a87520;animation:pulse 1.8s infinite}
+.iot-page .primary{min-height:50px;font-weight:800;letter-spacing:.02em}
+@media(max-width:760px){.company-logo{width:88px}.brand-divider{display:none}.login-company-logo{width:150px}}
