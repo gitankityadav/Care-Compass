@@ -89,7 +89,7 @@ function App(){
   const [workflowBusy,setWorkflowBusy]=useState(false)
   useEffect(()=>{let live=true;loadDatabase().then(remote=>{if(live){setData(remote);setDbStatus('connected');setDbError('')}}).catch(e=>{if(live){setDbStatus('offline');setDbError(e.message)}});return()=>{live=false}},[refreshKey])
   const refreshDatabase=()=>setRefreshKey(x=>x+1)
-  useEffect(()=>{if(!user||!['Nurse','IoT Device Operator'].includes(user.role))return;const timer=setInterval(()=>{loadDatabase().then(remote=>{setData(remote);setDbStatus('connected');setDbError('')}).catch(e=>{setDbStatus('offline');setDbError(e.message)})},2500);return()=>clearInterval(timer)},[user?.role])
+  useEffect(()=>{if(user?.role!=='Nurse')return;let stopped=false;const poll=async()=>{try{const [riskRes,intRes]=await Promise.all([fetch(`${API_BASE}/api/data/risk_register?limit=50000`),fetch(`${API_BASE}/api/data/intervention_cases?limit=50000`)]);if(!riskRes.ok||!intRes.ok)throw Error('Nurse alert refresh failed');const [riskJson,intJson]=await Promise.all([riskRes.json(),intRes.json()]);if(!stopped)setData(prev=>({...prev,operations:{...prev.operations,riskRegister:riskJson.rows||[],interventions:intJson.rows||[]}}))}catch(e){if(!stopped){setDbStatus('offline');setDbError(e.message)}}};const timer=setInterval(poll,2500);return()=>{stopped=true;clearInterval(timer)}},[user?.role])
   async function runScenario(id){
     setScenarioBusy(id)
     try{
@@ -241,7 +241,7 @@ function App(){
       <header className="topbar">
         <div className="crumb"><span>Care Compass</span><ChevronRight size={14}/><b>{current[1]}</b></div>
         <div className="top-actions">
-          <span className="live"><i/> {dbStatus==='connected'?'POSTGRESQL LIVE':dbStatus==='connecting'?'CONNECTING TO POSTGRES':'POSTGRES OFFLINE'}</span>
+          <span className="live"><i/> {dbStatus==='connected'?'POSTGRES LIVE':dbStatus==='connecting'?'CONNECTING TO POSTGRES':'POSTGRES OFFLINE'}</span>
           <button className="icon-button" aria-label="Operations Copilot" onClick={()=>setCopilot(!copilot)}><Brain size={18}/></button>
           <button className="icon-button" aria-label="Alerts" onClick={()=>notify(activeAlerts+' active alerts')}><Bell size={18}/>{activeAlerts>0&&<em className="dot-badge"/>}</button>
           <button className="icon-button only-compact" aria-label="Sign out" onClick={signOut}><LogOut size={17}/></button>
