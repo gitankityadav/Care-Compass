@@ -74,7 +74,7 @@ function IoTDevicePage(){
     let active=true;
     const check=async()=>{
       try{
-        const res=await fetch(API_BASE+'/api/data/nurses?limit=1');
+        const res=await fetch(API_BASE+'/api/health');
         if(!res.ok)throw new Error('FastAPI returned '+res.status);
         if(active){setApiState('connected');setApiMessage('Connected to Care Compass central command center · PostgreSQL');}
       }catch(e){if(active){setApiState('offline');setApiMessage(e.message+' · Start FastAPI on port 8000.');}}
@@ -357,6 +357,7 @@ function App(){
         {user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
           <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>Sophia Jones · Assigned care & patient safety</h2><p>Clinical alerts assigned to Sophia are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div>
           <div className="data-notice"><b>Signed in as Sophia Jones</b><span>Registered nurse · Emergency / Med-Surg workflow · Demo staff identity</span></div>
+          {dbStatus!=='connected'&&<div className="data-notice db-warning"><b>Central command connection unavailable</b><span>{dbError||'Waiting for FastAPI and PostgreSQL.'} · Check that FastAPI is running on port 8000 and refresh.</span><button className="text-button" onClick={refreshDatabase}>Retry connection</button></div>}
           <div className="nurse-device-launch"><div><b>Bedside IoT monitor</b><span>Open the connected device panel in a separate tab. Keep this nurse command center open to receive the alert.</span></div><button className="primary" onClick={()=>window.open('/iot-device','_blank','noopener,noreferrer')}>Open IoT Device Panel ↗</button></div>
           <div className="workflow-kpis"><div><small>ASSIGNED PATIENTS</small><strong>{assignedNursePatients.length}</strong></div><div><small>HIGH / CRITICAL RISKS</small><strong>{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length}</strong></div><div><small>OPEN INTERVENTIONS</small><strong>{activeNurseInterventions.length}</strong></div></div>
           <div className="panel"><div className="panel-head"><div><h2><AlertTriangle/> Nurse Spark alert queue</h2><p>Risk-register cases linked to this nurse's active patient assignments.</p></div><select value={nurseFilter} onChange={e=>setNurseFilter(e.target.value)}><option>All</option><option>Critical</option><option>High</option></select></div>
