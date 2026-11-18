@@ -784,3 +784,24 @@ body:has(.urgent-drawer-scrim) .nurse-taskbar{display:none!important}
 .nurse-banner-actions label{display:flex;flex-direction:column;gap:5px;color:#64758c;font-size:9px;font-weight:850;letter-spacing:.06em}
 .nurse-banner-actions select{min-width:190px;padding:9px 11px;border:1px solid #d4deea;border-radius:9px;background:#fff;color:#17263c;font-size:11px}
 @media(max-width:760px){.nurse-banner-actions{width:100%;align-items:stretch}.nurse-banner-actions label,.nurse-banner-actions select{width:100%}}
+
+
+/* Nurse Mobility: patient-centred shared care teams */
+.patient-team-summary .patient-team-meta{display:block;margin-top:5px;color:#087f82;font-weight:650}
+.patient-team-card{border:1px solid #dce6ef;border-radius:16px;padding:16px 18px;margin:14px 0;background:#fff}
+.patient-team-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:12px;border-bottom:1px solid #e8eef4}
+.patient-team-heading>div:first-child{display:grid;gap:4px}
+.patient-team-heading small,.patient-team-member small{color:#71839a;font-size:12px}
+.patient-team-counts{display:flex;gap:8px;flex-wrap:wrap}
+.patient-team-counts span,.team-workload{font-size:11px;font-weight:750;color:#087f82;background:#e8f7f5;border-radius:999px;padding:6px 9px;white-space:nowrap}
+.patient-team-members{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:12px 0}
+.patient-team-member{display:flex;align-items:center;gap:10px;border:1px solid #e8eef4;border-radius:12px;padding:10px;min-width:0}
+.patient-team-member.current-nurse{border-color:#6bc9bd;background:#effaf8}
+.patient-team-member .grow{min-width:0;display:grid;gap:3px}
+.patient-team-member .grow b{font-size:13px}
+.patient-team-member .grow small{white-space:normal}
+.patient-team-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #e8eef4;padding-top:12px;color:#60748b;font-size:12px}
+.nurse-mobility-page .workflow-kpis{margin-bottom:18px}
+.nurse-leave-page .nurse-leave-panel{margin-top:0}
+@media(max-width:850px){.patient-team-members{grid-template-columns:1fr}.patient-team-heading,.patient-team-footer{align-items:flex-start;flex-direction:column}}
+
