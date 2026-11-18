@@ -630,3 +630,41 @@ footer{color:#718198!important}
 .emergency-buttons span{font-size:11px;color:#9f1239}
 .emergency-foot{padding:12px 26px;border-top:1px solid #f1d8dc;color:#8b5b64;font-size:10px}
 @media(max-width:680px){.emergency-overlay{padding:8px}.emergency-modal{max-height:calc(100vh - 16px);border-radius:14px}.emergency-patient{grid-template-columns:1fr;padding:0 16px 15px}.emergency-head{padding:18px 16px}.emergency-progress{grid-template-columns:repeat(3,minmax(0,1fr));padding:0 16px 15px;row-gap:10px}.emergency-action{margin:0 16px 15px}.emergency-top{padding:12px 15px}.emergency-top small{display:none}.emergency-foot{padding:10px 16px}}
+
+/* Non-blocking urgent nurse alert rail and response drawer */
+.urgent-alerts-panel{margin:18px 0 22px;padding:19px 20px;background:#fff;border:1px solid #f1b8c2;border-top:4px solid #dc2626;border-radius:15px;box-shadow:0 8px 24px rgba(127,29,29,.07)}
+.urgent-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.urgent-panel-head>div{display:flex;align-items:center;gap:11px}
+.urgent-panel-head h2{margin:0;color:#17263c;font-size:18px}
+.urgent-panel-head p{margin:4px 0 0;color:#64748b;font-size:12px}
+.urgent-live-dot{width:10px;height:10px;display:inline-block;flex:none;border-radius:50%;background:#dc2626;box-shadow:0 0 0 4px #fee2e2;animation:urgent-blink 1.5s infinite}
+@keyframes urgent-blink{50%{opacity:.45}}
+.urgent-count{padding:6px 9px;border-radius:20px;background:#fee2e2;color:#991b1b;font-size:10px;font-weight:900;letter-spacing:.08em}
+.urgent-alert-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 10px;margin-top:7px;border:1px solid #f1d4d9;border-radius:10px;background:#fffafa;cursor:pointer;color:#17263c;transition:background .15s,border-color .15s}
+.urgent-alert-row:hover{background:#fff1f2;border-color:#e99aa8}
+.urgent-alert-row.high{background:#fffbeb;border-color:#f3dfaa}
+.urgent-alert-icon{width:34px;height:34px;display:grid;place-items:center;flex:none;border-radius:9px;background:#fee2e2;color:#b91c1c}
+.urgent-alert-row.high .urgent-alert-icon{background:#fef3c7;color:#a16207}
+.urgent-alert-copy{min-width:0;display:flex;flex:1;flex-direction:column;gap:4px}
+.urgent-alert-copy b{font-size:12px;white-space:normal}
+.urgent-alert-copy small{font-size:10px;color:#64748b}
+.urgent-severity{font-size:9px;font-weight:900;color:#b91c1c;letter-spacing:.08em}
+.urgent-alert-row.high .urgent-severity{color:#a16207}
+.urgent-open{font-size:10px;font-weight:800;color:#9f1239;white-space:nowrap}
+.urgent-empty{margin:8px 0 2px;padding:16px;border-radius:9px;background:#f8fafc;color:#64748b;text-align:center;font-size:12px}
+.urgent-toast{position:fixed;z-index:10001;top:92px;right:24px;width:min(390px,calc(100vw - 32px));display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #fda4af;border-left:5px solid #dc2626;border-radius:12px;background:#fff;color:#17263c;text-align:left;box-shadow:0 14px 42px rgba(127,29,29,.2);cursor:pointer;animation:urgent-toast-in .22s ease-out}
+.urgent-toast>span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:4px}
+.urgent-toast b{font-size:12px;color:#991b1b}
+.urgent-toast small{font-size:10px;color:#64748b}
+.urgent-toast strong{font-size:10px;color:#b91c1c}
+@keyframes urgent-toast-in{from{transform:translateX(18px);opacity:0}to{transform:translateX(0);opacity:1}}
+.urgent-drawer-scrim{position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.24);display:flex;justify-content:flex-end}
+.urgent-response-drawer{height:100%;width:min(570px,94vw);overflow:auto;background:#fff;box-shadow:-18px 0 48px rgba(15,23,42,.2);border-left:4px solid #dc2626;color:#17263c}
+.urgent-response-drawer .emergency-top{position:sticky;top:0;z-index:2;padding:14px 18px}
+.urgent-drawer-close{margin-left:auto;border:0;background:transparent;color:#fff;font-size:25px;line-height:1;cursor:pointer}
+.urgent-response-drawer .emergency-head{padding:22px 22px 16px}
+.urgent-response-drawer .emergency-patient{grid-template-columns:1fr;padding:0 22px 16px}
+.urgent-response-drawer .emergency-progress{grid-template-columns:repeat(3,minmax(0,1fr));padding:0 22px 17px;row-gap:11px}
+.urgent-response-drawer .emergency-action{margin:0 22px 18px}
+.urgent-response-drawer .emergency-foot{padding:12px 22px}
+@media(max-width:620px){.urgent-alert-row{align-items:flex-start;gap:8px}.urgent-severity{display:none}.urgent-open{font-size:9px}.urgent-alerts-panel{padding:14px}.urgent-panel-head h2{font-size:16px}}
