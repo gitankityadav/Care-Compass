@@ -126,7 +126,7 @@ function IoTDevicePage(){
       })});
       const result=await res.json();
       if(!res.ok)throw new Error(result.detail?.error||result.error||'The central command center rejected the event');
-      setLastEvent({eventId:result.event_id,riskId:result.risk.risk_id,interventionId:result.intervention.intervention_id,patient:patient.first_name+' '+patient.last_name,at:new Date().toLocaleTimeString()});
+      setLastEvent({eventId:result.event_id,riskId:result.risk.risk_id,interventionId:result.intervention?.intervention_id,patient:patient.first_name+' '+patient.last_name,at:new Date().toLocaleTimeString(),deduplicated:!!result.deduplicated});
     }catch(e){setApiMessage('Transmission failed: '+e.message);setApiState('offline');}
     finally{setSending(false);}
   };
@@ -150,7 +150,7 @@ function IoTDevicePage(){
             <b>{sending?'TRANSMITTING…':'PRESS TO TRIGGER ALERT'}</b>
             <small>{apiState==='connected'?'Send event to Nurse Sophia Jones':'Waiting for central command connection'}</small>
           </button>
-          {lastEvent&&<div className="iot-transmitted"><b><CheckCircle2 size={17}/> EVENT TRANSMITTED</b><span>{lastEvent.eventId} · {lastEvent.at}</span><small>Risk {lastEvent.riskId} and intervention {lastEvent.interventionId} committed for {lastEvent.patient}.</small></div>}
+          {lastEvent&&<div className="iot-transmitted"><b><CheckCircle2 size={17}/> {lastEvent.deduplicated?'DUPLICATE SUPPRESSED':'EVENT TRANSMITTED'}</b><span>{lastEvent.eventId} · {lastEvent.at}</span><small>{lastEvent.deduplicated?'This patient/device alert was already recorded in the last 15 minutes. No duplicate was created.':'Risk '+lastEvent.riskId+' and intervention '+lastEvent.interventionId+' committed for '+lastEvent.patient+'.'}</small></div>}
           <div className="iot-connection-detail">{apiMessage}</div>
         </section>
         <section className="iot-event-config panel">
