@@ -59,11 +59,11 @@ async function loadDatabase(){
 }
 
 
-function IoTDevicePage(){
+function PatientHelpPage(){
   const [patientId,setPatientId]=useState('PAT000004');
   const assignedPatients=workbook.patients;
   const patient=assignedPatients.find(p=>p.patient_id===patientId);
-  const assignedNurseId=patient?.assigned_nurse_id||workbook.nurse_patient_assignment.find(a=>a.patient_id===patientId&&a.active_status)?.nurse_id||'NUR00017';
+  const assignedNurseId=workbook.nurse_patient_assignment.find(a=>a.patient_id===patientId&&a.active_status)?.nurse_id||patient?.assigned_nurse_id||'NUR00017';
   const assignedNurse=workbook.nurses.find(n=>n.nurse_id===assignedNurseId);
   const [severity,setSeverity]=useState('Critical');
   const [eventType,setEventType]=useState('Abnormal heart-rate threshold');
@@ -191,13 +191,13 @@ function IoTDevicePage(){
       <p className="iot-intro">Use this page to request help from the nurse assigned to your care. Your request is sent to the care team and its acknowledgement is shown here.</p>
       <div className="iot-device-layout">
         <section className="iot-device-visual panel">
-          <div className="iot-device-top"><span className={'iot-led '+(messageStatus==='Nurse acknowledged'?'acknowledged':'')}/><b>{messageStatus==='Nurse acknowledged'?'NURSE ACKNOWLEDGED':'READY TO CONTACT NURSE'}</b><small>PATIENT SUPPORT</small></div>
+          <div className="iot-device-top"><span className={'iot-led '+(messageStatus==='Nurse acknowledged'?'acknowledged':'')}/><b>{messageStatus==='Nurse acknowledged'?'NURSE ACKNOWLEDGED':messageStatus==='Pending'?'PENDING — NURSE NOTIFIED':'READY TO CONTACT NURSE'}</b><small>PATIENT SUPPORT</small></div>
           <div className="patient-help-symbol"><HeartPulse size={46}/><span>HELP REQUEST</span></div>
           <div className="iot-device-caption"><b>PATIENT HELP REQUEST</b><span>Assigned nurse: {assignedNurse?.full_name||'Care team nurse'}</span></div>
           <button className="iot-red-trigger" onClick={send} disabled={apiState!=='connected'||sending||!patientId}>
             <span className="trigger-ring"><span/></span>
-            <b>{sending?'TRANSMITTING…':'CALL MY ASSIGNED NURSE'}</b>
-            <small>{apiState==='connected'?'Send event to '+(assignedNurse?.full_name||'your assigned nurse'):'Waiting for central command connection'}</small>
+            <b>{sending?'TRANSMITTING…':'REQUEST NURSE ASSISTANCE'}</b>
+            <small>{apiState==='connected'?'Notify '+(assignedNurse?.full_name||'your assigned nurse'):'Waiting for central command connection'}</small>
           </button>
           {lastEvent&&<div className="iot-transmitted"><b><CheckCircle2 size={17}/> {lastEvent.deduplicated?'DUPLICATE SUPPRESSED':'HELP REQUEST SENT'}</b><span>{lastEvent.eventId} · {lastEvent.at}</span><small>{lastEvent.deduplicated?'This patient/device alert was already recorded in the last 15 minutes. No duplicate was created.':'Risk '+lastEvent.riskId+' and intervention '+lastEvent.interventionId+' committed for '+lastEvent.patient+'.'}</small></div>}
           <div className="iot-connection-detail">{apiMessage}</div>
@@ -228,7 +228,7 @@ function IoTDevicePage(){
         <textarea className="iot-voice-transcript" rows="3" value={voiceTranscript} onChange={e=>setVoiceTranscript(e.target.value)} placeholder="Your spoken words will appear here…"/>
         <button className="primary" disabled={!voiceTranscript.trim()||voiceState==='sending'} onClick={sendVoiceMessage}>{voiceState==='sending'?'SENDING…':'SEND MESSAGE TO NURSE'}</button>
         {voiceState==='sent'&&<div className="iot-message-sent">Message sent. The bedside indicator turns purple when the nurse acknowledges it.</div>}
-        <div className={'iot-ack-indicator '+(messageStatus==='Nurse acknowledged'?'acknowledged':'pending')}><i/>{messageStatus==='Nurse acknowledged'?'NURSE ACKNOWLEDGED — PURPLE INDICATOR':'WAITING FOR NURSE ACKNOWLEDGEMENT'}</div>
+        <div className={'iot-ack-indicator '+(messageStatus==='Nurse acknowledged'?'acknowledged':'pending')}><i/>{messageStatus==='Nurse acknowledged'?'NURSE ACKNOWLEDGED':messageStatus==='Pending'?'PENDING — WAITING FOR NURSE':'READY TO SEND A REQUEST'}</div>
       </section>
       <section className="iot-flow panel">
         <div className="iot-section-label">LIVE RESPONSE JOURNEY</div>
@@ -409,7 +409,7 @@ function App(){
     finally{setScenarioBusy('')}
   }
 
-  if(['/patient-alert','/iot-device'].includes(window.location.pathname))return <IoTDevicePage/>
+  if(['/patient-alert','/iot-device'].includes(window.location.pathname))return <PatientHelpPage/>
 
   const allowed=access[user?.role||role]||access.Administrator
   const current=modules.find(m=>m[0]===tab)||modules[0]
