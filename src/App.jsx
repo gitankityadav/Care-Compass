@@ -261,6 +261,7 @@ function App(){
   const [logisticsStage,setLogisticsStage]=useState('All')
   const [shipmentInsight,setShipmentInsight]=useState({loading:false,route:null,weather:null,error:''})
   const [nurseWeather,setNurseWeather]=useState({loading:false,visits:[],error:''})
+  const [weatherPortalOpen,setWeatherPortalOpen]=useState(false)
   const activeNurseId=user?.nurseId||'NUR00017'
   useEffect(()=>{
     if(selected?.type!=='logistics'){setShipmentInsight({loading:false,route:null,weather:null,error:''});return}
@@ -565,7 +566,7 @@ function App(){
         <div className="crumb"><span>Care Compass</span><ChevronRight size={14}/><b>{current[1]}</b></div>
         <div className="top-actions">
           <span className={'live '+(dbStatus==='connected'?'is-connected':dbStatus==='offline'?'is-offline':'')} title={dbError||'PostgreSQL connection status'}><i/> {dbStatus==='connected'?'POSTGRES LIVE':dbStatus==='connecting'?'CONNECTING TO POSTGRES':'POSTGRES OFFLINE'}</span>
-          <button className="icon-button" aria-label="Operations Copilot" onClick={()=>setCopilot(!copilot)}><Brain size={18}/></button>
+          <button className="icon-button" aria-label="Weather journey portal" title="Weather journey portal" onClick={()=>{if(user?.role==="Nurse"){setTab("staff")}else if(user?.role==="Logistics Manager"){const shipment=data.shipments?.[0];if(shipment)setSelected({type:"logistics",record:shipment})}setWeatherPortalOpen(true)}}><CloudLightning size={18}/></button><button className="icon-button" aria-label="Operations Copilot" onClick={()=>setCopilot(!copilot)}><Brain size={18}/></button>
           <button className="icon-button" aria-label="Alerts" onClick={()=>notify(activeAlerts+' active alerts')}><Bell size={18}/>{activeAlerts>0&&<em className="dot-badge"/>}</button>
           <button className="icon-button only-compact" aria-label="Sign out" onClick={signOut}><LogOut size={17}/></button>
           <div className="avatar small">{initials(user.name)}</div>
@@ -806,6 +807,27 @@ function App(){
           </section>
         </>}
 
+      {weatherPortalOpen&&<div className="urgent-drawer-scrim" style={{zIndex:1200}} onClick={()=>setWeatherPortalOpen(false)}>
+        <section className="panel" role="dialog" aria-modal="true" aria-label="Weather journey forecast" onClick={e=>e.stopPropagation()} style={{position:'fixed',inset:'3vh 3vw',zIndex:1201,overflowY:'auto',padding:28,borderRadius:22,background:'var(--panel, #fff)'}}>
+          <div className="panel-head"><div><div className="eyebrow">CARE COMPASS / WEATHER JOURNEY PORTAL</div><h1><CloudLightning size={26}/> Weather journey briefing</h1><p>A guided view of current conditions, hourly forecasts, risk signals and recommended next steps.</p></div><button className="icon-button" aria-label="Close weather portal" onClick={()=>setWeatherPortalOpen(false)}><X/></button></div>
+          {user?.role==='Nurse'?<>
+            <div className="workflow-kpis"><div><small>STEP 1 · YOUR UPCOMING HOME VISITS</small><strong>{nurseWeather.visits.length} visits assessed</strong></div><div><small>STEP 2 · WEATHER CHECK</small><strong>{nurseWeather.loading?'Updating forecast…':nurseWeather.visits.filter(v=>v.risk).length+' visits need review'}</strong></div><div><small>STEP 3 · ACTION</small><strong>Nurse approval required</strong></div></div>
+            {nurseWeather.loading?<p className="empty">Loading forecast for assigned home visits…</p>:nurseWeather.visits.map(v=><article className="panel" key={v.session_id} style={{marginBottom:14,padding:18}}>
+              <div className="panel-head"><div><h2>{v.patient?.name||v.patient_id}</h2><p>Scheduled visit · {new Date(v.scheduled_datetime_utc).toLocaleString()} · {v.assumedLocation||v.patient?.facility||'Visit location'}</p></div><span className={'tag '+(v.risk?'red':'green')}>{v.risk?'WEATHER REVIEW':'CONDITIONS OK'}</span></div>
+              <div className="workflow-kpis"><div><small>TEMPERATURE</small><strong>{v.forecast.temp}°C</strong></div><div><small>RAIN CHANCE</small><strong>{v.forecast.rain}%</strong></div><div><small>WIND / GUST</small><strong>{v.forecast.wind} / {v.forecast.gust} km/h</strong></div><div><small>VISIBILITY</small><strong>{(v.forecast.visibility/1000).toFixed(1)} km</strong></div></div>
+              <div className="panel-head"><div><h3>How to use this forecast</h3><p>1. Review the visit time · 2. Check weather risk · 3. Compare the suggested time · 4. Approve or keep the original schedule.</p></div></div>
+              {v.safer&&<div className="workflow-alert"><div className="grow"><b>Suggested lower-risk visit time</b><small>{new Date(v.safer.time).toLocaleString()} · Rain {v.safer.rain}% · Wind {v.safer.wind} km/h</small></div><button className="secondary" onClick={()=>{setSelected({type:'nurse-session',record:v});setWeatherPortalOpen(false)}}>Review and approve time</button></div>}
+              {v.demoLocation&&<p className="empty">DEMO LOCATION ESTIMATE · {v.assumedLocation}. Exact home coordinates were not supplied.</p>}
+            </article>)}
+            {!nurseWeather.loading&&!nurseWeather.visits.length&&<p className="empty">{nurseWeather.error||'No upcoming home visits are available for this nurse.'}</p>}
+          </>:<>
+            <div className="workflow-kpis"><div><small>STEP 1 · SHIPMENT</small><strong>{selected?.type==='logistics'?selected.record.id:'Select a shipment in Logistics Tower'}</strong></div><div><small>STEP 2 · ROUTE</small><strong>{shipmentInsight.route?shipmentInsight.route.km.toFixed(0)+' km':'Route not loaded'}</strong></div><div><small>STEP 3 · WEATHER</small><strong>{shipmentInsight.loading?'Forecast updating':shipmentInsight.routeRisk?'Weather risk detected':'Monitoring conditions'}</strong></div></div>
+            {shipmentInsight.loading?<p className="empty">Building route and forecast checkpoints…</p>:shipmentInsight.routeWeather?.length?shipmentInsight.routeWeather.map(point=><article className="panel" key={point.label} style={{marginBottom:14,padding:18}}><div className="panel-head"><div><h2>{point.label}</h2><p>Forecast checkpoint along the shipment route</p></div><span className="tag teal">WEATHER CHECKPOINT</span></div>{point.forecast.map(w=><div className="workflow-alert" key={w.time}><div className="grow"><b>{new Date(w.time).toLocaleString([], {weekday:'long',hour:'numeric'})}</b><small>{w.temp}°C · Rain {w.rain}% · {w.mm} mm · Wind {w.wind} km/h · Gusts {w.gust} km/h · Thunder {w.thunder}% · Visibility {(w.visibility/1000).toFixed(1)} km</small></div><span className={'tag '+(w.rain>=60||w.wind>=45||w.gust>=65||w.thunder>=40||w.code>=95?'red':'green')}>{w.rain>=60||w.wind>=45||w.gust>=65||w.thunder>=40||w.code>=95?'RISK':'CLEAR'}</span></div>)}</article>):<p className="empty">Open a shipment from Logistics Tower first to load its route and weather forecast. Then reopen this portal.</p>}
+            <p className="empty">Forecasts are model estimates, not a carrier GPS feed. Route progress requires real tracking updates.</p>
+          </>}
+          <div className="panel-head"><div><h3>Decision guide</h3><p>Check forecast time against the planned journey or appointment. Treat risk flags as prompts for human review, not automatic dispatch or clinical decisions.</p></div></div>
+        </section>
+      </div>}
         <footer>CARE COMPASS · SYNTHETIC DATA ENVIRONMENT <span>Role: {user.role} · {dbStatus==='connected'?'PostgreSQL connected':'PostgreSQL connection unavailable'}</span></footer>
       </div>
     </main>
