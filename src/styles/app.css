@@ -595,3 +595,38 @@ footer{color:#718198!important}
 
 .db-warning{background:#fff8e8!important;border-color:#f0d7a1!important}
 .db-warning b{color:#8b5700!important}.db-warning span{color:#795f32!important}
+
+/* Critical Nurse Spark emergency response overlay */
+.emergency-overlay{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:22px;background:rgba(80,9,20,.78);backdrop-filter:blur(8px);animation:emergency-arrive .22s ease-out}
+@keyframes emergency-arrive{from{opacity:0}to{opacity:1}}
+.emergency-modal{width:min(920px,100%);max-height:calc(100vh - 44px);overflow:auto;background:#fff;border:2px solid #e11d48;border-radius:20px;box-shadow:0 24px 90px rgba(40,0,10,.42);color:#17263c}
+.emergency-top{display:flex;align-items:center;gap:11px;padding:15px 22px;background:#991b1b;color:#fff;font-size:11px;font-weight:900;letter-spacing:.12em}
+.emergency-top small{margin-left:auto;color:#fecaca;font-size:9px}
+.emergency-pulse{width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 0 0 0 #fff8;animation:emergency-pulse 1.15s infinite}
+@keyframes emergency-pulse{70%{box-shadow:0 0 0 10px #fff0}100%{box-shadow:0 0 0 0 #fff0}}
+.emergency-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:23px 26px 18px;background:linear-gradient(110deg,#fff1f2,#fff 72%)}
+.emergency-kicker{font-size:10px;font-weight:900;letter-spacing:.13em;color:#be123c}
+.emergency-head h1{font-size:clamp(25px,4vw,36px);margin:7px 0;color:#7f1d1d;letter-spacing:-.03em}
+.emergency-head p{font-size:13px;color:#6b3541;margin:0}
+.emergency-critical{padding:9px 13px;border-radius:8px;background:#be123c;color:#fff;font-size:11px;font-weight:900;letter-spacing:.1em;white-space:nowrap}
+.emergency-patient{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 26px 20px}
+.emergency-patient>div{display:flex;flex-direction:column;gap:5px;padding:14px;border:1px solid #f1c5cc;border-radius:11px;background:#fffafa}
+.emergency-patient small{font-size:9px;color:#9f334a;font-weight:900;letter-spacing:.12em}
+.emergency-patient strong{font-size:15px;color:#17263c}
+.emergency-patient span{font-size:11px;color:#64748b}
+.emergency-progress{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:0 26px 20px}
+.emergency-progress>div{display:flex;align-items:center;gap:6px;min-width:0;color:#94a3b8;font-size:9px;font-weight:750}
+.emergency-progress i{flex:none;width:23px;height:23px;border:1px solid #cbd5e1;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:10px}
+.emergency-progress .done{color:#b91c1c}
+.emergency-progress .done i{background:#b91c1c;border-color:#b91c1c;color:#fff}
+.emergency-action{margin:0 26px 20px;padding:19px;border:1px solid #f1c5cc;border-left:5px solid #dc2626;border-radius:12px;background:#fff7f7}
+.emergency-action>b,.emergency-action>div>b{font-size:16px;color:#7f1d1d}
+.emergency-action p{font-size:12px;line-height:1.6;color:#6b3541;margin:6px 0 14px}
+.emergency-note{display:flex;flex-direction:column;gap:7px;margin:12px 0;color:#7f1d1d;font-size:11px;font-weight:850}
+.emergency-note textarea{width:100%;resize:vertical;border:1px solid #e7aab5;border-radius:9px;padding:11px;background:#fff;color:#17263c;font:inherit}
+.emergency-buttons{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.emergency-buttons button{border:0;border-radius:9px;padding:13px 18px;background:linear-gradient(100deg,#b91c1c,#e11d48);color:#fff;font-weight:900;font-size:11px;letter-spacing:.06em;cursor:pointer}
+.emergency-buttons button:disabled{opacity:.55;cursor:wait}
+.emergency-buttons span{font-size:11px;color:#9f1239}
+.emergency-foot{padding:12px 26px;border-top:1px solid #f1d8dc;color:#8b5b64;font-size:10px}
+@media(max-width:680px){.emergency-overlay{padding:8px}.emergency-modal{max-height:calc(100vh - 16px);border-radius:14px}.emergency-patient{grid-template-columns:1fr;padding:0 16px 15px}.emergency-head{padding:18px 16px}.emergency-progress{grid-template-columns:repeat(3,minmax(0,1fr));padding:0 16px 15px;row-gap:10px}.emergency-action{margin:0 16px 15px}.emergency-top{padding:12px 15px}.emergency-top small{display:none}.emergency-foot{padding:10px 16px}}
