@@ -363,6 +363,47 @@ async def trigger_iot_alert(body: dict[str, Any] = Body(...)):
         with pool.connection() as connection:
             with connection.transaction():
                 with connection.cursor(row_factory=dict_row) as cursor:
+                    # Coalesce repeated bedside button presses for the same patient/device/event
+                    # during a rolling 15-minute window. The transaction-scoped advisory lock
+                    # prevents simultaneous clicks from creating duplicate rows.
+                    dedupe_key = "|".join((str(body["patient_id"]), str(body["device_id"]), str(body["risk_type"])))
+                    cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (dedupe_key,))
+                    cursor.execute(
+                        """
+                        SELECT * FROM risk_register
+                        WHERE patient_id = %s AND risk_type = %s
+                          AND status NOT IN ('Closed', 'Resolved')
+                          AND identified_datetime_utc >= NOW() - INTERVAL '15 minutes'
+                        ORDER BY identified_datetime_utc DESC LIMIT 1
+                        """,
+                        (body["patient_id"], body["risk_type"]),
+                    )
+                    existing_risk = cursor.fetchone()
+                    if existing_risk:
+                        cursor.execute(
+                            """
+                            SELECT * FROM intervention_cases
+                            WHERE patient_id = %s AND assigned_nurse_id = %s
+                              AND intervention_type LIKE %s
+                              AND created_datetime_utc >= NOW() - INTERVAL '15 minutes'
+                            ORDER BY created_datetime_utc DESC LIMIT 1
+                            """,
+                            (body["patient_id"], body["assigned_nurse_id"], f"%{body['device_id']}%"),
+                        )
+                        existing_intervention = cursor.fetchone()
+                        return {
+                            "event_id": f"IOT-DUPLICATE-{existing_risk['risk_id']}",
+                            "risk": existing_risk,
+                            "intervention": existing_intervention or {
+                                "intervention_id": None,
+                                "patient_id": body["patient_id"],
+                                "assigned_nurse_id": body["assigned_nurse_id"],
+                                "status": "Already recorded",
+                            },
+                            "deduplicated": True,
+                            "window_minutes": 15,
+                            "message": "Repeated alert suppressed; the existing open alert was retained",
+                        }
                     for table, record, pk in (
                         ("risk_register", risk, "risk_id"),
                         ("intervention_cases", intervention, "intervention_id"),
