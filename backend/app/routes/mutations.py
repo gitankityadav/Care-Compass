@@ -194,6 +194,150 @@ async def update_record(
         )
 
 
+@router.post("/logistics/shipments/{shipment_id}/transition")
+async def transition_logistics_shipment(
+    shipment_id: str,
+    request: Request,
+    body: dict[str, Any] = Body(...),
+):
+    """Atomically update a shipment, append its event, and write an audit record."""
+    allowed_statuses = {"Created", "In Transit", "Delayed", "Rerouted", "Delivered"}
+    next_status = body.get("shipment_status")
+    next_center_id = body.get("distribution_center_id")
+    if next_status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail={"error": "Unsupported shipment status"})
+    if not next_center_id:
+        raise HTTPException(status_code=400, detail={"error": "A distribution centre is required"})
+
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.transaction():
+                with connection.cursor(row_factory=dict_row) as cursor:
+                    cursor.execute(
+                        "SELECT * FROM logistics_shipments WHERE shipment_id = %s FOR UPDATE",
+                        (shipment_id,),
+                    )
+                    before = cursor.fetchone()
+                    if before is None:
+                        raise HTTPException(status_code=404, detail={"error": "Shipment not found"})
+
+                    cursor.execute(
+                        "SELECT * FROM distribution_centers WHERE distribution_center_id = %s",
+                        (next_center_id,),
+                    )
+                    center = cursor.fetchone()
+                    if center is None:
+                        raise HTTPException(status_code=404, detail={"error": "Distribution centre not found"})
+                    if center.get("operational_status") != "Operational":
+                        raise HTTPException(status_code=409, detail={"error": "Selected distribution centre is not operational"})
+
+                    current_center_id = before.get("distribution_center_id")
+                    if next_center_id != current_center_id:
+                        cursor.execute(
+                            """
+                            SELECT inventory_id, item_name, available_qty
+                            FROM inventory
+                            WHERE distribution_center_id = %s
+                              AND LOWER(BTRIM(item_name)) = LOWER(BTRIM(%s))
+                            FOR UPDATE
+                            """,
+                            (next_center_id, before.get("item_description", "")),
+                        )
+                        stock = cursor.fetchone()
+                        required_qty = int(before.get("quantity") or 0)
+                        if stock is None:
+                            raise HTTPException(
+                                status_code=409,
+                                detail={"error": "The selected distribution centre has no matching inventory item. Choose a centre with available stock."},
+                            )
+                        if int(stock.get("available_qty") or 0) < required_qty:
+                            raise HTTPException(
+                                status_code=409,
+                                detail={
+                                    "error": "Insufficient available inventory at the selected distribution centre",
+                                    "available_qty": int(stock.get("available_qty") or 0),
+                                    "required_qty": required_qty,
+                                },
+                            )
+
+                    eta = body.get("estimated_delivery_utc")
+                    if next_status == "Delivered":
+                        cursor.execute(
+                            """
+                            UPDATE logistics_shipments
+                            SET shipment_status = %s,
+                                distribution_center_id = %s,
+                                actual_delivery_utc = COALESCE(actual_delivery_utc, NOW())
+                            WHERE shipment_id = %s
+                            RETURNING *
+                            """,
+                            (next_status, next_center_id, shipment_id),
+                        )
+                    elif eta:
+                        cursor.execute(
+                            """
+                            UPDATE logistics_shipments
+                            SET shipment_status = %s,
+                                distribution_center_id = %s,
+                                estimated_delivery_utc = %s
+                            WHERE shipment_id = %s
+                            RETURNING *
+                            """,
+                            (next_status, next_center_id, eta, shipment_id),
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            UPDATE logistics_shipments
+                            SET shipment_status = %s,
+                                distribution_center_id = %s
+                            WHERE shipment_id = %s
+                            RETURNING *
+                            """,
+                            (next_status, next_center_id, shipment_id),
+                        )
+                    updated = cursor.fetchone()
+                    event_status = "Rerouted" if next_center_id != current_center_id else next_status
+                    cursor.execute(
+                        """
+                        INSERT INTO shipment_events (
+                            shipment_event_id, shipment_id, event_status,
+                            event_datetime_utc, recorded_by, scenario_id
+                        ) VALUES (%s, %s, %s, NOW(), %s, NULL)
+                        """,
+                        (
+                            f"SHE_UI_{int(time.time() * 1000)}_{secrets.token_hex(3)}",
+                            shipment_id,
+                            event_status,
+                            request.headers.get("x-user-name", "Logistics Manager"),
+                        ),
+                    )
+                    cursor.execute(
+                        """
+                        INSERT INTO audit_log (
+                            audit_id, event_datetime_utc, entity_type, entity_id,
+                            action, previous_value, new_value, performed_by, scenario_id
+                        ) VALUES (%s, NOW(), %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            generate_audit_id(),
+                            "logistics_shipments",
+                            shipment_id,
+                            "SHIPMENT_" + next_status.upper().replace(" ", "_"),
+                            json.dumps(before, default=str),
+                            json.dumps(updated, default=str),
+                            request.headers.get("x-user-name", "Logistics Manager"),
+                            "UI",
+                        ),
+                    )
+        return {"row": updated, "event_status": event_status, "message": "Shipment update, event history and audit record saved"}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail={"error": "Shipment workflow could not be saved"})
+
+
 @router.post("/data/{table}", status_code=201)
 async def create_record(
     table: str,
