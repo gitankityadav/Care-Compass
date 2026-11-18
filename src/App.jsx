@@ -60,9 +60,11 @@ async function loadDatabase(){
 
 
 function IoTDevicePage(){
-  const assigned=workbook.nurse_patient_assignment.filter(a=>a.nurse_id==='NUR00017'&&a.active_status);
+  const [nurseId,setNurseId]=useState('NUR00017');
+  const assigned=workbook.nurse_patient_assignment.filter(a=>a.nurse_id===nurseId&&a.active_status);
   const assignedPatients=assigned.map(a=>workbook.patients.find(p=>p.patient_id===a.patient_id)).filter(Boolean);
   const [patientId,setPatientId]=useState(assignedPatients[0]?.patient_id||'PAT000004');
+  useEffect(()=>{setPatientId(assignedPatients[0]?.patient_id||'')},[nurseId]);
   const [severity,setSeverity]=useState('Critical');
   const [eventType,setEventType]=useState('Abnormal heart-rate threshold');
   const [observation,setObservation]=useState('Heart rate has exceeded the configured safety threshold. Immediate nurse assessment requested.');
@@ -135,7 +137,7 @@ function IoTDevicePage(){
     if(!voiceTranscript.trim()||!patient)return;
     setVoiceState('sending');
     try{
-      const r=await fetch(API_BASE+'/api/device/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:patient.patient_id,hospital_id:patient.hospital_id,assigned_nurse_id:'NUR00017',device_id:'CC-IOT-ICU-014',message_text:voiceTranscript,message_language:'en-IN'})});
+      const r=await fetch(API_BASE+'/api/device/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:patient.patient_id,hospital_id:patient.hospital_id,assigned_nurse_id:nurseId,device_id:'CC-IOT-ICU-014',message_text:voiceTranscript,message_language:'en-IN'})});
       const j=await r.json();if(!r.ok)throw Error(j.detail?.error||'Message could not be sent');
       finalTranscriptRef.current='';setVoiceTranscript('');setVoice('sent');setMessageStatus('Pending');
     }catch(e){setApiMessage('Message not sent: '+e.message);setVoice('error')}
@@ -159,7 +161,7 @@ function IoTDevicePage(){
     try{
       const therapy=workbook.therapy_episodes.find(t=>t.patient_id===patient.patient_id);
       const res=await fetch(API_BASE+'/api/iot/trigger',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        patient_id:patient.patient_id,hospital_id:patient.hospital_id,assigned_nurse_id:'NUR00017',
+        patient_id:patient.patient_id,hospital_id:patient.hospital_id,assigned_nurse_id:nurseId,
         risk_type:eventType,severity,device_id:'CC-IOT-ICU-014',device_name:'Bedside Patient Monitor CC-IOT-ICU-014',
         observation,therapy_episode_id:therapy?.therapy_episode_id||null,event_datetime_utc:new Date().toISOString()
       })});
@@ -187,7 +189,7 @@ function IoTDevicePage(){
           <button className="iot-red-trigger" onClick={send} disabled={apiState!=='connected'||sending||!patientId}>
             <span className="trigger-ring"><span/></span>
             <b>{sending?'TRANSMITTING…':'PRESS TO TRIGGER ALERT'}</b>
-            <small>{apiState==='connected'?'Send event to Nurse Sophia Jones':'Waiting for central command connection'}</small>
+            <small>{apiState==='connected'?'Send event to '+(workbook.nurses.find(n=>n.nurse_id===nurseId)?.full_name||'assigned nurse'):'Waiting for central command connection'}</small>
           </button>
           {lastEvent&&<div className="iot-transmitted"><b><CheckCircle2 size={17}/> {lastEvent.deduplicated?'DUPLICATE SUPPRESSED':'EVENT TRANSMITTED'}</b><span>{lastEvent.eventId} · {lastEvent.at}</span><small>{lastEvent.deduplicated?'This patient/device alert was already recorded in the last 15 minutes. No duplicate was created.':'Risk '+lastEvent.riskId+' and intervention '+lastEvent.interventionId+' committed for '+lastEvent.patient+'.'}</small></div>}
           <div className="iot-connection-detail">{apiMessage}</div>
@@ -195,7 +197,7 @@ function IoTDevicePage(){
         <section className="iot-event-config panel">
           <div className="iot-section-label">EVENT CONFIGURATION</div>
           <h2>Patient & telemetry</h2>
-          <label>Assigned nurse</label><div className="iot-readonly">Sophia Jones <span>NUR00017 · Med-Surg</span></div>
+          <label>Assigned nurse</label><select value={nurseId} onChange={e=>setNurseId(e.target.value)}>{['NUR00017','NUR00002','NUR00003'].map(id=>{const n=workbook.nurses.find(x=>x.nurse_id===id);return <option key={id} value={id}>{n?.full_name||id} · {id}</option>})}</select>
           <label>Patient connected to this monitor</label>
           <select value={patientId} onChange={e=>setPatientId(e.target.value)}>{assignedPatients.map(p=><option key={p.patient_id} value={p.patient_id}>{p.first_name} {p.last_name} · {p.patient_id}</option>)}</select>
           <label>Device event</label><select value={eventType} onChange={e=>setEventType(e.target.value)}><option>Abnormal heart-rate threshold</option><option>Oxygen saturation below threshold</option><option>Blood pressure outside configured range</option><option>Patient deterioration detected</option><option>Missed critical observation</option></select>
@@ -226,7 +228,7 @@ function IoTDevicePage(){
         <div className="iot-flow-steps">
           <div><b>01</b><strong>Device trigger</strong><span>Bedside monitor sends telemetry</span></div>
           <div><b>02</b><strong>Central command</strong><span>FastAPI records the event in PostgreSQL</span></div>
-          <div><b>03</b><strong>Nurse receives alert</strong><span>Sophia's open command center refreshes automatically</span></div>
+          <div><b>03</b><strong>Nurse receives alert</strong><span>the assigned nurse's command center refreshes automatically</span></div>
           <div><b>04</b><strong>Clinical response</strong><span>Acknowledge · Attend · Resolve</span></div>
         </div>
       </section>
