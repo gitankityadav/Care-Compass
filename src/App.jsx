@@ -259,7 +259,7 @@ function App(){
   }
   async function decideLeaveRequest(item,decision){
     try{
-      const r=await fetch(API_BASE+'/api/nurse-leave/'+encodeURIComponent(item.leave_request_id)+'/decision',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});
+      const r=await fetch(API_BASE+'/api/nurse-leave/'+encodeURIComponent(item.leave_request_id)+'/decision',{method:'PATCH',headers:{'Content-Type':'application/json','X-Nurse-Id':activeNurseId},body:JSON.stringify({decision})});
       const j=await r.json();if(!r.ok)throw Error(j.detail?.error||'Could not save decision');
       setLeaveRequests(v=>v.map(x=>x.leave_request_id===item.leave_request_id?j.request:x));notify('Leave coverage '+decision);
     }catch(e){notify('Decision failed: '+e.message)}
