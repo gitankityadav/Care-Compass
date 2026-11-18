@@ -1,4 +1,5 @@
-﻿from contextlib import asynccontextmanager
+﻿import asyncio
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,7 @@ from app.database import get_db_pool
 from app.routes.data import router as data_router
 from app.routes.mutations import router as mutations_router
 from app.routes.scenarios import router as scenarios_router
+from app.routes.automation import automation_scheduler, router as automation_router
 
 settings = get_settings()
 pool = get_db_pool()
@@ -16,9 +18,15 @@ pool = get_db_pool()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pool.open()
+    task = asyncio.create_task(automation_scheduler())
     try:
         yield
     finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
         pool.close()
 
 
@@ -41,6 +49,7 @@ app.add_middleware(
 app.include_router(data_router)
 app.include_router(mutations_router)
 app.include_router(scenarios_router)
+app.include_router(automation_router)
 
 
 @app.get("/")
