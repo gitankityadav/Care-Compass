@@ -257,7 +257,7 @@ function App(){
   const [scenarioResults,setScenarioResults]=useState({})
   const [nurseFilter,setNurseFilter]=useState('All')
   const [logisticsStage,setLogisticsStage]=useState('All')
-  const [activeNurseId,setActiveNurseId]=useState('NUR00017')
+  const [activeNurseId]=useState(()=>JSON.parse(localStorage.getItem('cc-user')||'null')?.nurseId||'NUR00017')
   const [triggerPatientId,setTriggerPatientId]=useState('PAT000004')
   const [triggerSeverity,setTriggerSeverity]=useState('Critical')
   const [triggerType,setTriggerType]=useState('Deteriorating patient condition')
@@ -432,7 +432,7 @@ function App(){
   const patientOpenInterventionCount=patientId=>data.operations.interventions.filter(x=>x.patient_id===patientId&&!/completed|closed|resolved/i.test(x.status||'')).length
   const nurseAlerts=data.operations.riskRegister.filter(r=>r.severity==='Critical'||r.severity==='High').map(r=>({...r,id:r.risk_id,title:r.risk_type,severity:r.severity,facility:(data.hospitals||workbook.hospitals).find(h=>h.hospital_id===r.hospital_id)?.hospital_name||r.hospital_id,type:'Patient risk',status:r.status,patient:data.patients.find(p=>p.id===r.patient_id)?.name||r.patient_id}))
   const activeNurseInterventions=data.operations.interventions.filter(x=>x.assigned_nurse_id===activeNurseId&&!/completed|closed|resolved/i.test(x.status||''))
-  const activeNurseName=data.nurses.find(n=>n.id===activeNurseId)?.name||'Assigned Nurse'
+  const activeNurseName=user?.role==='Nurse'?user.name:(data.nurses.find(n=>n.id===activeNurseId)?.name||'Assigned Nurse')
   const incomingLeaveRequests=leaveRequests.filter(x=>x.cover_nurse_id===activeNurseId)
   const outgoingLeaveRequests=leaveRequests.filter(x=>x.requesting_nurse_id===activeNurseId)
   const leaveDays=leaveStart&&leaveEnd&&new Date(leaveEnd)>=new Date(leaveStart)?Math.floor((new Date(leaveEnd+'T00:00:00')-new Date(leaveStart+'T00:00:00'))/86400000)+1:0
@@ -465,7 +465,7 @@ function App(){
 
   if(!user)return <>
     <Background/>
-    <Login onEnter={(email,password)=>{const accounts={'nurse.sophia.jones@carecompass.demo':{password:'Nurse@123',name:'Sophia Jones',role:'Nurse',nurseId:'NUR00017'},'logistics.daniel.brooks@carecompass.demo':{password:'Logistics@123',name:'Daniel Brooks',role:'Logistics Manager'},'iot.device@carecompass.demo':{password:'IoTDevice@123',name:'Bedside IoT Monitor',role:'IoT Device Operator'}};const account=accounts[email];if(!account||account.password!==password)return 'Email or password is incorrect. Use a configured Care Compass demo account.';const u={name:account.name,email,role:account.role};setUser(u);localStorage.setItem('cc-user',JSON.stringify(u));if(account.nurseId)setActiveNurseId(account.nurseId);setTab(access[account.role][0]);return ''}}/>
+    <Login onEnter={(email,password)=>{const accounts={'nurse.sophia.jones@carecompass.com':{password:'Nurse@123',name:'Sophia Jones',role:'Nurse',nurseId:'NUR00017'},'logistics.daniel.brooks@carecompass.com':{password:'Logistics@123',name:'Daniel Brooks',role:'Logistics Manager'},'iot.device@carecompass.com':{password:'IoTDevice@123',name:'Bedside IoT Monitor',role:'IoT Device Operator'}};const account=accounts[email];if(!account||account.password!==password)return 'Email or password is incorrect. Use a configured Care Compass demo account.';const u={...account,email};setUser(u);localStorage.setItem('cc-user',JSON.stringify(u));setTab(access[account.role][0]);return ''}}/>
   </>
 
   const heads=tab==='patients'?['Patient','Facility','Risk','Care pathway','Assigned nurse','Status']:tab==='logistics'?['Shipment','Origin','Destination','Supply','Quantity','Status','ETA']:tab==='ops'?['Device','Facility','Unit','Health score','Status','Ticket','Technician']:tab==='staff'?['Nurse','Facility','Specialty','Workload','Status']:['Alert','Facility','Type','Severity','Status']
@@ -519,8 +519,8 @@ function App(){
 
 
         {user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
-          <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>{activeNurseName} · Assigned care & patient safety</h2><p>Clinical alerts assigned to Sophia are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><div className="nurse-banner-actions"><label>Demo nurse identity<select value={activeNurseId} onChange={e=>setActiveNurseId(e.target.value)}>{data.nurses.map(n=><option key={n.id} value={n.id}>{n.name}</option>)}</select></label><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div></div>
-          <div className="data-notice"><b>Signed in as {activeNurseName}</b><span>Registered nurse · Emergency / Med-Surg workflow · Demo staff identity</span></div>
+          <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>{activeNurseName} · Assigned care & patient safety</h2><p>Clinical alerts assigned to {activeNurseName} are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><div className="nurse-banner-actions"><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div></div>
+          <div className="data-notice"><b>Signed in as {activeNurseName}</b><span>Registered nurse · Emergency / Med-Surg workflow</span></div>
           {dbStatus!=='connected'&&<div className="data-notice db-warning"><b>Central command connection unavailable</b><span>{dbError||'Waiting for FastAPI and PostgreSQL.'} · Check that FastAPI is running on port 8000 and refresh.</span><button className="text-button" onClick={refreshDatabase}>Retry connection</button></div>}
           <div className="nurse-device-launch"><div><b>Bedside IoT monitor</b><span>Open the connected device panel in a separate tab. Keep this nurse command center open to receive the alert.</span></div><button className="primary" onClick={()=>window.open('/iot-device','_blank','noopener,noreferrer')}>Open IoT Device Panel ↗</button></div>
           <div className="panel patient-device-messages"><div className="panel-head"><div><h2><Mic/> Patient Messages</h2><p>One-way messages sent from connected bedside devices. Nurses acknowledge and attend in Care Compass; no replies are sent to the device.</p></div><span className="tag violet">{deviceMessages.filter(m=>m.message_status!=='Acknowledged').length} UNACKNOWLEDGED</span></div>{deviceMessages.filter(m=>assignedPatientIds.has(m.patient_id)).slice(0,20).map(m=><div className="workflow-alert" key={m.message_id}><div className="grow"><b>{data.patients.find(p=>p.id===m.patient_id)?.name||m.patient_id}</b><small>{m.device_id} · {new Date(m.created_at).toLocaleString()}</small><p className="device-message-text">{m.message_text}</p></div><span className={'tag '+(m.message_status==='Acknowledged'?'violet':'red')}>{m.message_status}</span>{m.message_status!=='Acknowledged'&&<button className="primary" onClick={()=>acknowledgeDeviceMessage(m)}>Acknowledge</button>}</div>)}{!deviceMessages.length&&<p className="empty">No bedside messages received.</p>}</div>
