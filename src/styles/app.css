@@ -805,3 +805,21 @@ body:has(.urgent-drawer-scrim) .nurse-taskbar{display:none!important}
 .nurse-leave-page .nurse-leave-panel{margin-top:0}
 @media(max-width:850px){.patient-team-members{grid-template-columns:1fr}.patient-team-heading,.patient-team-footer{align-items:flex-start;flex-direction:column}}
 
+
+
+/* Presentation layout: compact, vertically scrollable alert rail in the upper-right workspace */
+.nurse-taskbar{
+  position:fixed!important;top:104px!important;right:24px!important;bottom:auto!important;left:auto!important;
+  width:292px!important;min-width:0!important;max-width:calc(100vw - 32px)!important;min-height:0!important;
+  max-height:calc(100vh - 132px)!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  gap:8px!important;padding:12px!important;border:1px solid #29445f!important;border-top:3px solid #e11d48!important;
+  border-radius:14px!important;background:#10243b!important;box-shadow:0 12px 38px rgba(15,23,42,.25)!important;
+}
+.nurse-taskbar-label{width:100%!important;flex:0 0 auto!important;min-height:34px;display:flex!important;justify-content:space-between!important;border-right:0!important;border-bottom:1px solid #3a5068;padding:0 2px 9px!important}
+.nurse-taskbar-track{width:100%!important;max-width:none!important;min-height:0!important;flex:1 1 auto!important;overflow:hidden!important;display:block!important}
+.nurse-taskbar-scroll{width:100%!important;max-height:calc(100vh - 205px)!important;overflow-y:auto!important;overflow-x:hidden!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;padding:2px 4px 4px 1px!important;scrollbar-width:thin;scrollbar-color:#64748b #10243b}
+.nurse-task-chip{width:100%!important;max-width:none!important;min-width:0!important;min-height:62px!important;flex:none!important}
+.nurse-taskbar-refresh{margin-left:auto!important;align-self:center!important}
+.nurse-taskbar-label .nurse-taskbar-refresh{width:27px;height:27px;font-size:18px}
+@media(max-width:900px){.nurse-taskbar{top:90px!important;right:12px!important;bottom:auto!important;left:auto!important;width:min(280px,calc(100vw - 24px))!important;max-height:55vh!important}.nurse-taskbar-scroll{max-height:calc(55vh - 70px)!important}}
+@media(max-width:620px){.nurse-taskbar{top:auto!important;right:10px!important;bottom:10px!important;width:calc(100vw - 20px)!important;max-height:38vh!important}.nurse-taskbar-scroll{max-height:calc(38vh - 70px)!important}}
