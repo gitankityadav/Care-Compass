@@ -372,7 +372,6 @@ async def trigger_iot_alert(body: dict[str, Any] = Body(...)):
                         """
                         SELECT * FROM risk_register
                         WHERE patient_id = %s AND risk_type = %s
-                          AND status NOT IN ('Closed', 'Resolved')
                           AND identified_datetime_utc >= NOW() - INTERVAL '15 minutes'
                         ORDER BY identified_datetime_utc DESC LIMIT 1
                         """,
