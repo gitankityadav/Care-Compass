@@ -823,3 +823,95 @@ body:has(.urgent-drawer-scrim) .nurse-taskbar{display:none!important}
 .nurse-taskbar-label .nurse-taskbar-refresh{width:27px;height:27px;font-size:18px}
 @media(max-width:900px){.nurse-taskbar{top:90px!important;right:12px!important;bottom:auto!important;left:auto!important;width:min(280px,calc(100vw - 24px))!important;max-height:55vh!important}.nurse-taskbar-scroll{max-height:calc(55vh - 70px)!important}}
 @media(max-width:620px){.nurse-taskbar{top:auto!important;right:10px!important;bottom:10px!important;width:calc(100vw - 20px)!important;max-height:38vh!important}.nurse-taskbar-scroll{max-height:calc(38vh - 70px)!important}}
+
+
+/* Nurse workspace: reserved right-hand alert column (not a floating overlay) */
+@media(min-width:1101px){
+  .shell:has(.nurse-taskbar){
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 292px!important;
+    column-gap:18px!important;
+    padding:0 20px 0 calc(var(--sidebar-w) + 32px)!important;
+    align-items:start!important;
+  }
+  .shell:has(.nurse-taskbar)>.main{
+    grid-column:1!important;
+    grid-row:1!important;
+    min-width:0!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    padding-right:0!important;
+  }
+  .shell:has(.nurse-taskbar)>.nurse-taskbar{
+    grid-column:2!important;
+    grid-row:1!important;
+    position:sticky!important;
+    top:88px!important;
+    align-self:start!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:calc(100vh - 108px)!important;
+    max-height:calc(100vh - 108px)!important;
+    margin:88px 0 20px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:10px!important;
+    padding:14px!important;
+    overflow:hidden!important;
+    background:#fff1f2!important;
+    color:#54212b!important;
+    border:1px solid #f3c6ce!important;
+    border-top:4px solid #e7a0ad!important;
+    border-radius:14px!important;
+    box-shadow:0 5px 18px rgba(120,45,60,.07)!important;
+    z-index:2!important;
+  }
+  .nurse-taskbar-label{
+    width:100%!important;flex:0 0 auto!important;min-height:38px!important;
+    justify-content:space-between!important;border:0!important;
+    border-bottom:1px solid #f0cbd1!important;padding:0 2px 10px!important;
+  }
+  .nurse-taskbar-label b{color:#8f3547!important}
+  .nurse-taskbar-label small{color:#9c6670!important}
+  .nurse-taskbar-track{width:100%!important;max-width:none!important;min-height:0!important;flex:1 1 auto!important;overflow:hidden!important;display:block!important}
+  .nurse-taskbar-scroll{
+    width:100%!important;height:100%!important;max-height:none!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:8px!important;padding:2px 4px 4px 1px!important;
+    scrollbar-width:thin;scrollbar-color:#e3aab5 #fff1f2;
+  }
+  .nurse-task-chip{
+    width:100%!important;max-width:none!important;min-width:0!important;
+    min-height:62px!important;flex:none!important;
+    background:#ffe4e8!important;border:1px solid #f3bdc7!important;
+    color:#54212b!important;
+  }
+  .nurse-task-chip.high{background:#fff0d6!important;border-color:#f0d29a!important}
+  .nurse-task-chip b{color:#b42345!important}
+  .nurse-task-chip.high b{color:#946000!important}
+  .nurse-task-chip span{color:#54212b!important;white-space:normal!important}
+  .nurse-task-chip small{color:#87545f!important}
+  .nurse-taskbar-refresh{color:#9f4053!important}
+}
+@media(max-width:1100px){
+  .shell:has(.nurse-taskbar){display:flex!important;flex-direction:column!important;padding:0!important}
+  .shell:has(.nurse-taskbar)>.nurse-taskbar{
+    position:static!important;order:2!important;
+    width:auto!important;min-width:0!important;max-width:none!important;
+    height:auto!important;max-height:42vh!important;margin:12px 14px 18px!important;
+    display:flex!important;flex-direction:column!important;
+    background:#fff1f2!important;color:#54212b!important;
+    border:1px solid #f3c6ce!important;border-top:4px solid #e7a0ad!important;
+    box-shadow:0 5px 18px rgba(120,45,60,.07)!important;
+  }
+  .nurse-taskbar-label{width:100%!important;flex:0 0 auto!important;border:0!important;border-bottom:1px solid #f0cbd1!important}
+  .nurse-taskbar-label b{color:#8f3547!important}.nurse-taskbar-label small{color:#9c6670!important}
+  .nurse-taskbar-track{width:100%!important;max-width:none!important;min-height:0!important}
+  .nurse-taskbar-scroll{max-height:calc(42vh - 72px)!important;overflow-y:auto!important;overflow-x:hidden!important;flex-direction:column!important}
+  .nurse-task-chip{width:100%!important;max-width:none!important;background:#ffe4e8!important;border-color:#f3bdc7!important;color:#54212b!important}
+  .nurse-task-chip b{color:#b42345!important}.nurse-task-chip span{color:#54212b!important}.nurse-task-chip small{color:#87545f!important}
+  .nurse-task-chip.high{background:#fff0d6!important;border-color:#f0d29a!important}
+}
