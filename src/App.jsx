@@ -30,7 +30,7 @@ const initial={
     workOrders:workbook.work_orders||[], interventions:workbook.intervention_cases||[],
     recalls:workbook.recall_cases||[], firmwareCampaigns:workbook.firmware_campaigns||[],
     firmwareExecution:workbook.firmware_execution||[], ticketHistory:workbook.ticket_status_history||[],
-    riskRegister:workbook.risk_register||[], deviceAssignments:workbook.device_patient_assignment||[]
+    riskRegister:workbook.risk_register||[]
   },
   meta:{source:'Care Compass Synthetic Data.xlsx',asOf:new Date().toISOString(),preview:true,previewRows:100,sheetCount:32,sheets:Object.keys(workbook)}
 }
@@ -230,6 +230,11 @@ function App(){
   const [emergencyNote,setEmergencyNote]=useState('')
   const [emergencyBusy,setEmergencyBusy]=useState(false)
   const [deviceMessages,setDeviceMessages]=useState([])
+  const [leaveRequests,setLeaveRequests]=useState([])
+  const [leaveStart,setLeaveStart]=useState('')
+  const [leaveEnd,setLeaveEnd]=useState('')
+  const [coverNurseId,setCoverNurseId]=useState('')
+  const [leaveBusy,setLeaveBusy]=useState(false)
   const emergencySeen=useRef(new Set())
   useEffect(()=>{if(window.location.pathname==='/iot-device')return;let live=true;loadDatabase().then(remote=>{if(live){emergencySeen.current=new Set(remote.operations.riskRegister.map(r=>r.risk_id));setData(remote);setDbStatus('connected');setDbError('')}}).catch(e=>{if(live){setDbStatus('offline');setDbError(e.message)}});return()=>{live=false}},[refreshKey])
   const refreshDatabase=()=>setRefreshKey(x=>x+1)
