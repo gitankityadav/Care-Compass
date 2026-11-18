@@ -606,7 +606,7 @@ def create_nurse_leave_request(body: dict[str, Any] = Body(...)):
 
 
 @router.patch("/nurse-leave/{request_id}/decision")
-def decide_nurse_leave_request(request_id: str, body: dict[str, Any] = Body(...)):
+def decide_nurse_leave_request(request_id: str, request: Request, body: dict[str, Any] = Body(...)):
     decision = str(body.get("decision", "")).strip().lower()
     if decision not in ("approved", "declined"):
         raise HTTPException(status_code=400, detail={"error": "Decision must be approved or declined"})
