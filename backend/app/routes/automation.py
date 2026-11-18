@@ -78,7 +78,7 @@ def run_automation_scan():
                 FROM public.logistics_shipments s
                 LEFT JOIN public.hospitals h ON h.hospital_id = s.destination_hospital_id
                 WHERE LOWER(COALESCE(s.shipment_status,'')) NOT IN ('delivered','cancelled','canceled','complete','completed')
-                ORDER BY s.estimated_delivery_utc ASC LIMIT 500
+                  AND s.estimated_delivery_utc >= NOW() - INTERVAL '48 hours'\n                  AND s.estimated_delivery_utc <= NOW() + INTERVAL '24 hours'\n                ORDER BY s.estimated_delivery_utc ASC LIMIT 100
             """)
             shipments = cur.fetchall()
             checked["shipments"] = len(shipments)
@@ -99,7 +99,7 @@ def run_automation_scan():
                     created += 1
                 if s.get("latitude") is not None and s.get("longitude") is not None:
                     try:
-                        risk, forecast = _weather(s["latitude"], s["longitude"])
+                        risk, forecast = forecast_for(s["latitude"], s["longitude"])
                         if risk:
                             _upsert_event(cur, {
                                 "key": f"logistics:weather:{s['shipment_id']}:{risk['at'][:13]}", "module": "Logistics",
@@ -129,7 +129,7 @@ def run_automation_scan():
             checked["home_visits"] = len(visits)
             for v in visits:
                 try:
-                    risk, forecast = _weather(v["latitude"], v["longitude"])
+                    risk, forecast = forecast_for(v["latitude"], v["longitude"])
                     if risk:
                         _upsert_event(cur, {
                             "key": f"nurse:weather:{v['session_id']}:{risk['at'][:13]}", "module": "Nurse",
