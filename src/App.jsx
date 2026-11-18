@@ -142,7 +142,7 @@ function IoTDevicePage(){
       <p className="iot-intro">A bedside patient monitor is connected to the Care Compass central command center. Press the physical alert control to transmit a patient safety event directly to the assigned nurse.</p>
       <div className="iot-device-layout">
         <section className="iot-device-visual panel">
-          <div className="iot-device-top"><span className="iot-led"/><b>DEVICE ONLINE</b><small>CC-IOT-ICU-014</small></div>
+          <div className="iot-device-top"><span className={'iot-led '+(messageStatus==='Acknowledged'?'acknowledged':'')}/><b>{messageStatus==='Acknowledged'?'NURSE ACKNOWLEDGED':'DEVICE ONLINE'}</b><small>CC-IOT-ICU-014</small></div>
           <img src="/iot-emergency-button.svg" alt="Hand pressing the red bedside emergency alert button"/>
           <div className="iot-device-caption"><b>BEDSIDЕ PATIENT MONITOR</b><span>Signal: Connected · Channel: Clinical Safety</span></div>
           <button className="iot-red-trigger" onClick={send} disabled={apiState!=='connected'||sending||!patientId}>
@@ -663,7 +663,7 @@ function App(){
     </div>}
 
     {user?.role==='Nurse'&&tab==='patients'&&<div className="nurse-taskbar" role="region" aria-label="Unresolved patient tasks">
-      <div className="nurse-taskbar-label"><span className="urgent-live-dot"/><span><b>OPEN CARE TASKS</b><small>{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)&&!['Closed','Resolved'].includes(r.status)).length} unresolved</small></span></div>
+      <div className="nurse-taskbar-label"><span className="urgent-live-dot"/><span><b>OPEN CARE TASKS</b><small>{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)&&!['Closed','Resolved'].includes(r.status)).length+deviceMessages.filter(m=>assignedPatientIds.has(m.patient_id)&&m.message_status!=='Acknowledged').length} unresolved</small></span></div>
       <div className="nurse-taskbar-track"><div className="nurse-taskbar-scroll">
         {deviceMessages.filter(m=>assignedPatientIds.has(m.patient_id)&&m.message_status!=='Acknowledged').slice(0,20).map(m=><button key={m.message_id} className="nurse-task-chip message" onClick={()=>document.querySelector('.patient-device-messages')?.scrollIntoView({behavior:'smooth',block:'center'})}><b>● PATIENT MESSAGE</b><span>{data.patients.find(p=>p.id===m.patient_id)?.name||m.patient_id} · {m.message_text}</span><small>Awaiting acknowledgement →</small></button>)}
         {nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)&&!['Closed','Resolved'].includes(r.status)).sort((a,b)=>(a.severity==='Critical'?-1:1)-(b.severity==='Critical'?-1:1)).slice(0,20).map(r=><button key={r.id} className={'nurse-task-chip '+(r.severity==='Critical'?'critical':'high')} onClick={()=>{setEmergencyAlert(r);setEmergencyStep(0);setEmergencyNote('')}}><b>{r.severity==='Critical'?'● CRITICAL':'▲ HIGH'}</b><span>{r.patient} · {r.title}</span><small>{r.status} · Open case →</small></button>)}
