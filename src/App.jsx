@@ -239,6 +239,31 @@ function App(){
     const load=async()=>{try{const r=await fetch(`${API_BASE}/api/device/messages?nurse_id=${encodeURIComponent(activeNurseId)}`);if(r.ok){const j=await r.json();if(live)setDeviceMessages(j.rows||[])}}catch{}};
     load();const t=setInterval(load,2500);return()=>{live=false;clearInterval(t)};
   },[user?.role,activeNurseId,refreshKey]);
+
+  useEffect(()=>{
+    if(window.location.pathname==='/iot-device'||user?.role!=='Nurse')return;
+    let live=true;
+    const load=async()=>{try{const r=await fetch(`${API_BASE}/api/nurse-leave?nurse_id=${encodeURIComponent(activeNurseId)}`);if(r.ok){const j=await r.json();if(live)setLeaveRequests(j.rows||[])}}catch{}};
+    load();const t=setInterval(load,8000);return()=>{live=false;clearInterval(t)};
+  },[user?.role,activeNurseId,refreshKey]);
+  async function sendLeaveRequest(){
+    if(!leaveStart||!leaveEnd||!coverNurseId){notify('Choose leave dates and a covering nurse');return}
+    const cover=data.nurses.find(n=>n.id===coverNurseId);
+    if(!cover){notify('Covering nurse not found');return}
+    setLeaveBusy(true);
+    try{
+      const r=await fetch(API_BASE+'/api/nurse-leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requesting_nurse_id:activeNurseId,cover_nurse_id:coverNurseId,leave_start:leaveStart,leave_end:leaveEnd,patients_to_cover:assignedNursePatients.length,sessions_to_cover:nurseSessions.length})});
+      const j=await r.json();if(!r.ok)throw Error(j.detail?.error||'Could not send leave request');
+      setLeaveRequests(v=>[j.request,...v]);notify('Coverage request sent to '+cover.name+' for approval');
+    }catch(e){notify('Leave request failed: '+e.message)}finally{setLeaveBusy(false)}
+  }
+  async function decideLeaveRequest(item,decision){
+    try{
+      const r=await fetch(API_BASE+'/api/nurse-leave/'+encodeURIComponent(item.leave_request_id)+'/decision',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});
+      const j=await r.json();if(!r.ok)throw Error(j.detail?.error||'Could not save decision');
+      setLeaveRequests(v=>v.map(x=>x.leave_request_id===item.leave_request_id?j.request:x));notify('Leave coverage '+decision);
+    }catch(e){notify('Decision failed: '+e.message)}
+  }
   async function acknowledgeDeviceMessage(message){
     try{
       const r=await fetch(`${API_BASE}/api/device/messages/${encodeURIComponent(message.message_id)}/acknowledge`,{method:'PATCH',headers:{'X-User-Name':user?.name||'Sophia Jones'}});
@@ -357,6 +382,14 @@ function App(){
   const nurseSessions=data.operations.therapySessions.filter(s=>assignedPatientIds.has(s.patient_id))
   const nurseAlerts=data.operations.riskRegister.filter(r=>r.severity==='Critical'||r.severity==='High').map(r=>({...r,id:r.risk_id,title:r.risk_type,severity:r.severity,facility:(data.hospitals||workbook.hospitals).find(h=>h.hospital_id===r.hospital_id)?.hospital_name||r.hospital_id,type:'Patient risk',status:r.status,patient:data.patients.find(p=>p.id===r.patient_id)?.name||r.patient_id}))
   const activeNurseInterventions=data.operations.interventions.filter(x=>x.assigned_nurse_id===activeNurseId&&!/completed|closed|resolved/i.test(x.status||''))
+  const activeNurseName=data.nurses.find(n=>n.id===activeNurseId)?.name||'Assigned Nurse'
+  const incomingLeaveRequests=leaveRequests.filter(x=>x.cover_nurse_id===activeNurseId)
+  const outgoingLeaveRequests=leaveRequests.filter(x=>x.requesting_nurse_id===activeNurseId)
+  const leaveDays=leaveStart&&leaveEnd&&new Date(leaveEnd)>=new Date(leaveStart)?Math.floor((new Date(leaveEnd+'T00:00:00')-new Date(leaveStart+'T00:00:00'))/86400000)+1:0
+  const coverNurse=data.nurses.find(n=>n.id===coverNurseId)
+  const coverPatientCount=data.operations.nurseAssignments.filter(a=>a.nurse_id===coverNurseId&&a.active_status===true).length
+  const coverPatientIds=new Set(data.operations.nurseAssignments.filter(a=>a.nurse_id===coverNurseId&&a.active_status===true).map(a=>a.patient_id))
+  const coverSessionCount=data.operations.therapySessions.filter(x=>coverPatientIds.has(x.patient_id)).length
   const stockExceptions=data.operations.inventory.filter(x=>Number(x.available_qty??x.on_hand_qty??0)<=Number(x.reorder_threshold??0))
   const visible=useMemo(()=>rows.filter(r=>Object.values(r).join(' ').toLowerCase().includes(query.toLowerCase())).filter(r=>filter==='All'||r.risk===filter||r.status===filter||r.severity===filter),[rows,query,filter])
   const activeAlerts=data.alerts.filter(a=>a.status==='Active').length
@@ -436,8 +469,8 @@ function App(){
 
 
         {user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
-          <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>Sophia Jones · Assigned care & patient safety</h2><p>Clinical alerts assigned to Sophia are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div>
-          <div className="data-notice"><b>Signed in as Sophia Jones</b><span>Registered nurse · Emergency / Med-Surg workflow · Demo staff identity</span></div>
+          <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>{activeNurseName} · Assigned care & patient safety</h2><p>Clinical alerts assigned to Sophia are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div>
+          <div className="data-notice"><b>Signed in as {activeNurseName}</b><span>Registered nurse · Emergency / Med-Surg workflow · Demo staff identity</span></div>
           {dbStatus!=='connected'&&<div className="data-notice db-warning"><b>Central command connection unavailable</b><span>{dbError||'Waiting for FastAPI and PostgreSQL.'} · Check that FastAPI is running on port 8000 and refresh.</span><button className="text-button" onClick={refreshDatabase}>Retry connection</button></div>}
           <div className="nurse-device-launch"><div><b>Bedside IoT monitor</b><span>Open the connected device panel in a separate tab. Keep this nurse command center open to receive the alert.</span></div><button className="primary" onClick={()=>window.open('/iot-device','_blank','noopener,noreferrer')}>Open IoT Device Panel ↗</button></div>
           <div className="panel patient-device-messages"><div className="panel-head"><div><h2><Mic/> Patient Messages</h2><p>One-way messages sent from connected bedside devices. Nurses acknowledge and attend in Care Compass; no replies are sent to the device.</p></div><span className="tag violet">{deviceMessages.filter(m=>m.message_status!=='Acknowledged').length} UNACKNOWLEDGED</span></div>{deviceMessages.filter(m=>assignedPatientIds.has(m.patient_id)).slice(0,20).map(m=><div className="workflow-alert" key={m.message_id}><div className="grow"><b>{data.patients.find(p=>p.id===m.patient_id)?.name||m.patient_id}</b><small>{m.device_id} · {new Date(m.created_at).toLocaleString()}</small><p className="device-message-text">{m.message_text}</p></div><span className={'tag '+(m.message_status==='Acknowledged'?'violet':'red')}>{m.message_status}</span>{m.message_status!=='Acknowledged'&&<button className="primary" onClick={()=>acknowledgeDeviceMessage(m)}>Acknowledge</button>}</div>)}{!deviceMessages.length&&<p className="empty">No bedside messages received.</p>}</div>
