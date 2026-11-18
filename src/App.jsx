@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
-import {Activity,Users,Truck,HeartPulse,ShieldCheck,Bell,Search,X,MapPin,ArrowUpRight,AlertTriangle,Clock,Plus,Download,Send,LogOut,Stethoscope,Wrench,Brain,CheckCircle2,ChevronRight,Command,Building2,Syringe,Cpu,ShieldAlert,CloudLightning,PackageX,ArrowLeftRight,UserRound} from 'lucide-react'
+import {Activity,Users,Truck,HeartPulse,ShieldCheck,Bell,Search,X,MapPin,ArrowUpRight,AlertTriangle,Clock,Plus,Download,Send,LogOut,Stethoscope,Wrench,Brain,CheckCircle2,ChevronRight,Command,Building2,Syringe,Cpu,ShieldAlert,CloudLightning,PackageX,ArrowLeftRight,UserRound,Mic} from 'lucide-react'
 import NetworkMap from './components/NetworkMap'
 import Background from './components/Background'
 import CountUp from './components/CountUp'
@@ -70,6 +70,37 @@ function IoTDevicePage(){
   const [apiMessage,setApiMessage]=useState('Checking connection to the central command center…');
   const [sending,setSending]=useState(false);
   const [lastEvent,setLastEvent]=useState(null);
+  const [voiceTranscript,setVoiceTranscript]=useState('');
+  const [voiceState,setVoiceState]=useState('idle');
+  const [messageStatus,setMessageStatus]=useState('');
+  const recognitionRef=useRef(null);
+  useEffect(()=>{
+    let live=true;
+    const load=async()=>{try{const r=await fetch(`${API_BASE}/api/device/messages?patient_id=${encodeURIComponent(patientId)}`);if(r.ok){const j=await r.json();const latest=(j.rows||[])[0];if(live)setMessageStatus(latest?.message_status||'')}}catch{}};
+    load();const t=setInterval(load,2500);return()=>{live=false;clearInterval(t)};
+  },[patientId]);
+  const startVoice=()=>{
+    const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!Speech){setVoiceState('unsupported');return}
+    try{
+      const rec=new Speech();rec.lang='en-IN';rec.continuous=true;rec.interimResults=true;recognitionRef.current=rec;
+      setVoiceTranscript('');setVoiceState('recording');
+      rec.onresult=e=>{let text='';for(let i=0;i<e.results.length;i++)text+=e.results[i][0].transcript+' ';setVoiceTranscript(text.trim())};
+      rec.onerror=e=>setVoiceState(e.error==='not-allowed'?'permission':'error');
+      rec.onend=()=>setVoiceState(v=>v==='recording'?'ready':v);
+      rec.start();
+    }catch{setVoiceState('error')}
+  };
+  const stopVoice=()=>{if(recognitionRef.current){recognitionRef.current.stop();recognitionRef.current=null}setVoiceState(v=>v==='recording'?'ready':v)};
+  const sendVoiceMessage=async()=>{
+    if(!voiceTranscript.trim()||!patient)return;
+    setVoiceState('sending');
+    try{
+      const r=await fetch(API_BASE+'/api/device/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:patient.patient_id,hospital_id:patient.hospital_id,assigned_nurse_id:'NUR00017',device_id:'CC-IOT-ICU-014',message_text:voiceTranscript,message_language:'en-IN'})});
+      const j=await r.json();if(!r.ok)throw Error(j.detail?.error||'Message could not be sent');
+      setVoiceState('sent');setVoiceTranscript('');setMessageStatus('Pending');
+    }catch(e){setApiMessage('Message not sent: '+e.message);setVoiceState('error')}
+  };
   useEffect(()=>{
     let active=true;
     const check=async()=>{
@@ -134,6 +165,21 @@ function IoTDevicePage(){
           <div className="iot-payload-note"><Activity size={16}/><span>On trigger, FastAPI writes the patient risk, nurse intervention and device audit event in one database transaction.</span></div>
         </section>
       </div>
+      <section className="iot-voice-panel panel">
+        <div className="iot-section-label">PATIENT-TO-NURSE COMMUNICATION</div>
+        <h2>Speak to your nurse</h2>
+        <p className="iot-voice-help">Hold the microphone while speaking. Release it when you finish. Review the recognised words before sending.</p>
+        <button className={'iot-voice-hold '+(voiceState==='recording'?'recording':'')} onPointerDown={e=>{e.preventDefault();startVoice()}} onPointerUp={stopVoice} onPointerLeave={stopVoice} onContextMenu={e=>e.preventDefault()}>
+          <Mic size={25}/><b>{voiceState==='recording'?'LISTENING — RELEASE TO FINISH':'PRESS & HOLD TO SPEAK'}</b><small>{voiceState==='recording'?'Speak clearly; release when finished':'This device sends a message to the assigned nurse'}</small>
+        </button>
+        {voiceState==='unsupported'&&<p className="iot-voice-warning">Voice recognition is not supported in this browser. Open this bedside device in Chrome or Edge and allow microphone access.</p>}
+        {voiceState==='permission'&&<p className="iot-voice-warning">Microphone permission was denied. Allow microphone access in browser settings.</p>}
+        <label className="iot-voice-label">Recognised message — review before sending</label>
+        <textarea className="iot-voice-transcript" rows="3" value={voiceTranscript} onChange={e=>setVoiceTranscript(e.target.value)} placeholder="Your spoken words will appear here…"/>
+        <button className="primary" disabled={!voiceTranscript.trim()||voiceState==='sending'} onClick={sendVoiceMessage}>{voiceState==='sending'?'SENDING…':'SEND MESSAGE TO NURSE'}</button>
+        {voiceState==='sent'&&<div className="iot-message-sent">Message sent. The bedside indicator turns purple when the nurse acknowledges it.</div>}
+        <div className={'iot-ack-indicator '+(messageStatus==='Acknowledged'?'acknowledged':'pending')}><i/>{messageStatus==='Acknowledged'?'NURSE ACKNOWLEDGED — PURPLE INDICATOR':'WAITING FOR NURSE ACKNOWLEDGEMENT'}</div>
+      </section>
       <section className="iot-flow panel">
         <div className="iot-section-label">LIVE RESPONSE JOURNEY</div>
         <h2>Device-to-care workflow</h2>
