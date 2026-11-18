@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from 'react'
-import {Activity,Users,Truck,CalendarDays,HeartPulse,ShieldCheck,Bell,Search,X,MapPin,ArrowUpRight,AlertTriangle,Clock,Plus,Download,Send,LogOut,Stethoscope,Wrench,Brain,CheckCircle2,ChevronRight,Command,Building2,Syringe,Cpu,ShieldAlert,CloudLightning,PackageX,ArrowLeftRight,UserRound,Mic} from 'lucide-react'
+import {Activity,Users,Truck,CalendarDays,HeartPulse,ShieldCheck,Bell,Search,X,MapPin,ArrowUpRight,AlertTriangle,Clock,Plus,Download,Send,LogOut,Stethoscope,Wrench,Brain,CheckCircle2,ChevronRight,Command,Building2,Syringe,Cpu,ShieldAlert,CloudLightning,PackageX,ArrowLeftRight,UserRound,Mic,RefreshCw,ClipboardCheck} from 'lucide-react'
 import NetworkMap from './components/NetworkMap'
 import Background from './components/Background'
 import CountUp from './components/CountUp'
@@ -8,8 +8,8 @@ import Login from './components/Login'
 import workbook from './data/workbook-sample.json'
 import './styles/app.css'
 
-const modules=[['twin','Leadership Dashboard',Activity],['patients','Patient Command',Users],['staff','Nurse Mobility',Stethoscope],['leave','Leave & Coverage',CalendarDays],['logistics','Logistics Tower',Truck],['ops','Service Ops',Wrench],['resilience','Resilience Center',ShieldCheck],['trigger','IoT Device Simulator',Cpu]]
-const shortLabel={twin:'Twin',patients:'Patients',staff:'Nurse Mobility',leave:'Leave',logistics:'Logistics',ops:'Ops',resilience:'Resilience',trigger:'IoT Device'}
+const modules=[['twin','Leadership Dashboard',Activity],['patients','Patient Command',Users],['staff','Nurse Mobility',Stethoscope],['leave','Leave & Coverage',CalendarDays],['logistics','Logistics Tower',Truck],['automation','Automation Center',RefreshCw],['ops','Service Ops',Wrench],['resilience','Resilience Center',ShieldCheck],['trigger','IoT Device Simulator',Cpu]]
+const shortLabel={twin:'Twin',patients:'Patients',staff:'Nurse Mobility',leave:'Leave',logistics:'Logistics',automation:'Automation',ops:'Ops',resilience:'Resilience',trigger:'IoT Device'}
 const hospitalById=Object.fromEntries(workbook.hospitals.map(h=>[h.hospital_id,h]))
 const nurseById=Object.fromEntries(workbook.nurses.map(n=>[n.nurse_id,n]))
 
@@ -36,8 +36,8 @@ const initial={
 }
 
 const roles=['Administrator','Doctor','Nurse','Logistics Manager','Technician','Auditor','Clinical Dispatcher']
-const access={Administrator:['twin','patients','logistics','ops','staff','resilience'],Doctor:['twin','patients','resilience'],Nurse:['patients','staff','leave'],'Logistics Manager':['logistics','twin','resilience'],Technician:['ops','resilience'],Auditor:['twin','patients','logistics','ops','staff','resilience'],'IoT Device Operator':['trigger']}
-const descriptions={patients:'Review patient risk, care pathways, assignments and intervention status.',logistics:'Monitor supply movements, destination facilities and shipment exceptions.',ops:'Track medical device condition, maintenance and biomedical service dispatch.',staff:'See each patient’s complete nursing team, shared assignments and workload.',leave:'Plan nurse leave, nominate cover and track colleague approval.',resilience:'Manage operational threats, facility disruptions and response status.',trigger:'Simulate a bedside IoT device event and send an instant alert to the assigned nurse.'}
+const access={Administrator:['twin','patients','logistics','automation','ops','staff','resilience'],Doctor:['twin','patients','resilience'],Nurse:['patients','staff','leave','automation'],'Logistics Manager':['logistics','twin','resilience','automation'],Technician:['ops','resilience'],Auditor:['twin','patients','logistics','automation','ops','staff','resilience'],'IoT Device Operator':['trigger']}
+const descriptions={automation:'See automatic checks, issues that need attention and the next recommended step.',patients:'Review patient risk, care pathways, assignments and intervention status.',logistics:'Monitor supply movements, destination facilities and shipment exceptions.',ops:'Track medical device condition, maintenance and biomedical service dispatch.',staff:'See each patient’s complete nursing team, shared assignments and workload.',leave:'Plan nurse leave, nominate cover and track colleague approval.',resilience:'Manage operational threats, facility disruptions and response status.',trigger:'Simulate a bedside IoT device event and send an instant alert to the assigned nurse.'}
 const scenarios=[
   ['Storm disruption logistics response','3 critical shipments halted · Regional supply continuity','HIGH PRI','logistics',CloudLightning,'rose'],
   ['Missed or delayed patient therapy','Identify affected patients and nearest available nurse','CLINICAL','patients',Syringe,'cyan'],
@@ -255,6 +255,11 @@ function App(){
   const [dbStatus,setDbStatus]=useState('connecting')
   const [dbError,setDbError]=useState('')
   const [refreshKey,setRefreshKey]=useState(0)
+  const [automationEvents,setAutomationEvents]=useState([])
+  const [automationStatus,setAutomationStatus]=useState(null)
+  const [automationLoading,setAutomationLoading]=useState(false)
+  const [automationBusy,setAutomationBusy]=useState(false)
+  const [automationError,setAutomationError]=useState('')
   const [scenarioBusy,setScenarioBusy]=useState('')
   const [scenarioResults,setScenarioResults]=useState({})
   const [nurseFilter,setNurseFilter]=useState('All')
@@ -263,6 +268,27 @@ function App(){
   const [nurseWeather,setNurseWeather]=useState({loading:false,visits:[],error:''})
   const [weatherPortalOpen,setWeatherPortalOpen]=useState(false)
   const activeNurseId=user?.nurseId||'NUR00017'
+  useEffect(()=>{
+    if(!user||tab!=='automation')return
+    let live=true
+    const load=async()=>{
+      try{
+        const moduleFilter=user.role==='Nurse'?'Nurse':user.role==='Logistics Manager'?'Logistics':''
+        const suffix=moduleFilter?'?module='+encodeURIComponent(moduleFilter)+'&limit=200':'?limit=200'
+        const [statusRes,eventsRes]=await Promise.all([
+          fetch(API_BASE+'/api/automation/status'),
+          fetch(API_BASE+'/api/automation/events'+suffix)
+        ])
+        if(!statusRes.ok||!eventsRes.ok)throw Error('Could not load automatic checks. Please confirm the command center is connected.')
+        const [status,events]=await Promise.all([statusRes.json(),eventsRes.json()])
+        if(live){setAutomationStatus(status);setAutomationEvents(events.rows||[]);setAutomationError('')}
+      }catch(e){if(live)setAutomationError(e.message||'Automatic checks are temporarily unavailable.')}
+      finally{if(live)setAutomationLoading(false)}
+    }
+    setAutomationLoading(true);load()
+    const timer=setInterval(load,60000)
+    return()=>{live=false;clearInterval(timer)}
+  },[user?.role,tab,refreshKey])
   useEffect(()=>{
     if(selected?.type!=='logistics'){setShipmentInsight({loading:false,route:null,weather:null,error:''});return}
     const sh=selected.record?.source||{};
@@ -412,6 +438,27 @@ function App(){
   function notify(s){setToast(s);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),2800)}
   function persist(next){setData(next);if(dbStatus!=='connected')localStorage.setItem('cc-data',JSON.stringify(next))}
   function go(id){setTab(id);setQuery('');setFilter('All');setSelected(null);window.scrollTo({top:0,behavior:'smooth'})}
+  async function refreshAutomation(){
+    setAutomationBusy(true)
+    try{
+      const response=await fetch(API_BASE+'/api/automation/run',{method:'POST'})
+      const result=await response.json()
+      if(!response.ok)throw Error(result.detail||'Could not complete the automatic check')
+      setRefreshKey(v=>v+1)
+      notify('Automatic checks completed. The latest results are shown below.')
+    }catch(e){notify('Could not run checks: '+e.message)}
+    finally{setAutomationBusy(false)}
+  }
+  async function acknowledgeAutomation(event){
+    try{
+      const response=await fetch(API_BASE+'/api/automation/events/'+event.event_id+'/acknowledge?actor='+encodeURIComponent(user?.name||'Care Compass user'),{method:'POST'})
+      const result=await response.json()
+      if(!response.ok)throw Error(result.detail||'Could not mark this item as reviewed')
+      setAutomationEvents(items=>items.map(item=>item.event_id===event.event_id?{...item,...result}:item))
+      setAutomationStatus(status=>status?{...status,open:Math.max(0,Number(status.open||0)-1)}:status)
+      notify('Marked as reviewed.')
+    }catch(e){notify('Could not update this item: '+e.message)}
+  }
   function signOut(){localStorage.removeItem('cc-user');setUser(null)}
   async function persistWorkflowAction({table,id,patch,action,event}){
     setWorkflowBusy(true)
@@ -588,7 +635,26 @@ function App(){
         </div>
 
 
-        {user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
+        {tab==='automation'?<section className="workflow-page automation-page">
+          <div className="workflow-banner automation-banner"><div><span className="eyebrow">CARE COMPASS · AUTOMATIC MONITORING</span><h2>Issues are checked for you</h2><p>Care Compass checks upcoming home visits, shipment delays, delivery-area weather and low stock. You review the findings and decide what action to take.</p></div><div className="automation-live"><i/>{automationStatus?.enabled?'MONITORING ENABLED':'CONNECTING'}</div></div>
+          {automationError&&<div className="data-notice db-warning"><b>Could not load automatic checks</b><span>{automationError}</span><button className="text-button" onClick={()=>setRefreshKey(v=>v+1)}>Try again</button></div>}
+          <div className="automation-toolbar"><div><b>Automatic checks</b><span>Runs about every {automationStatus?.schedule_minutes||15} minutes. This page refreshes every minute while open.</span></div><button className="primary" onClick={refreshAutomation} disabled={automationBusy||automationLoading}><RefreshCw size={15} className={automationBusy?'spin':''}/>{automationBusy?'Checking…':'Check now'}</button></div>
+          <div className="workflow-kpis automation-kpis">
+            <div><small>ALL ITEMS FOUND</small><strong>{automationStatus?.total??automationEvents.length}</strong></div>
+            <div><small>NEEDS ATTENTION</small><strong>{automationStatus?.open??automationEvents.filter(x=>x.event_status==='Open').length}</strong></div>
+            <div><small>NURSE VISITS</small><strong>{automationEvents.filter(x=>x.module==='Nurse').length}</strong></div>
+            <div><small>LOGISTICS & STOCK</small><strong>{automationEvents.filter(x=>x.module==='Logistics').length}</strong></div>
+          </div>
+          <div className="panel automation-explainer"><div className="automation-explainer-icon"><ClipboardCheck size={20}/></div><div><b>What happens automatically?</b><p>Potential issues are collected here. No shipment is rerouted, no visit is cancelled and no stock is ordered automatically. A person reviews and approves the next step.</p></div></div>
+          <div className="panel automation-list-panel"><div className="panel-head"><div><h2><AlertTriangle/> Items to review</h2><p>{automationEvents.length} item{automationEvents.length===1?'':'s'} currently visible for your role</p></div><span className="tag amber">{automationEvents.filter(x=>x.event_status==='Open').length} OPEN</span></div>
+            {automationLoading&&!automationEvents.length?<p className="empty">Loading automatic check results…</p>:automationEvents.length?automationEvents.map(event=><article className={'automation-event '+(event.event_status==='Acknowledged'?'reviewed':'')} key={event.event_id}>
+              <div className={'automation-event-mark '+String(event.severity||'').toLowerCase()}><AlertTriangle size={17}/></div>
+              <div className="automation-event-copy"><div className="automation-event-meta"><span className={'tag '+(event.severity==='High'?'red':event.severity==='Moderate'?'amber':'green')}>{event.severity||'Review'}</span><span>{event.module==='Nurse'?'NURSE VISIT':'LOGISTICS'}</span><span>{event.entity_id}</span></div><h3>{event.title}</h3><p>{event.description}</p><div className="automation-next-step"><b>Suggested next step</b><span>{event.recommended_action}</span></div><small>Last noticed: {event.last_seen_utc?new Date(event.last_seen_utc).toLocaleString():'Not available'}{event.acknowledged_by?' · Reviewed by '+event.acknowledged_by:''}</small></div>
+              <div className="automation-event-action">{event.event_status==='Acknowledged'?<span className="automation-reviewed"><CheckCircle2 size={15}/> Reviewed</span>:<button className="secondary" onClick={()=>acknowledgeAutomation(event)}>Mark reviewed</button>}</div>
+            </article>):<p className="empty">No items have been raised by the automatic checks. Select “Check now” to run a fresh check.</p>}
+          </div>
+          <p className="automation-footnote">Weather information is advisory and may use an approximate hospital location when a patient's location is unavailable. Always confirm local conditions and clinical urgency before changing a visit or delivery plan.</p>
+        </section>:user.role==='Nurse'&&tab==='patients'?<section className="workflow-page">
           <div className="workflow-banner"><div><span className="eyebrow">NURSE SPARK · CARE RESPONSE</span><h2>{activeNurseName} · Assigned care & patient safety</h2><p>Clinical alerts assigned to {activeNurseName} are reviewed here. Acknowledge, respond, attend and resolve each case.</p></div><div className="nurse-banner-actions"><span className="tag red">{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)).length} HIGH-RISK CASES</span></div></div>
           <div className="data-notice"><b>Signed in as {activeNurseName}</b><span>Registered nurse · Emergency / Med-Surg workflow</span></div>
           {dbStatus!=='connected'&&<div className="data-notice db-warning"><b>Central command connection unavailable</b><span>{dbError||'Waiting for FastAPI and PostgreSQL.'} · Check that FastAPI is running on port 8000 and refresh.</span><button className="text-button" onClick={refreshDatabase}>Retry connection</button></div>}
