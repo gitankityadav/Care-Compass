@@ -74,6 +74,9 @@ function IoTDevicePage(){
   const [voiceState,setVoiceState]=useState('idle');
   const [messageStatus,setMessageStatus]=useState('');
   const recognitionRef=useRef(null);
+  const finalTranscriptRef=useRef('');
+  const voiceStateRef=useRef('idle');
+  const setVoice=(next)=>{voiceStateRef.current=next;setVoiceState(next)};
   useEffect(()=>{
     let live=true;
     const load=async()=>{try{const r=await fetch(`${API_BASE}/api/device/messages?patient_id=${encodeURIComponent(patientId)}`);if(r.ok){const j=await r.json();const latest=(j.rows||[])[0];if(live)setMessageStatus(latest?.message_status||'')}}catch{}};
@@ -81,25 +84,61 @@ function IoTDevicePage(){
   },[patientId]);
   const startVoice=()=>{
     const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!Speech){setVoiceState('unsupported');return}
+    if(!Speech){setVoice('unsupported');return}
+    if(recognitionRef.current)return;
     try{
-      const rec=new Speech();rec.lang='en-IN';rec.continuous=true;rec.interimResults=true;recognitionRef.current=rec;
-      setVoiceTranscript('');setVoiceState('recording');
-      rec.onresult=e=>{let text='';for(let i=0;i<e.results.length;i++)text+=e.results[i][0].transcript+' ';setVoiceTranscript(text.trim())};
-      rec.onerror=e=>setVoiceState(e.error==='not-allowed'?'permission':'error');
-      rec.onend=()=>setVoiceState(v=>v==='recording'?'ready':v);
+      const rec=new Speech();
+      rec.lang='en-IN';
+      rec.continuous=true;
+      rec.interimResults=true;
+      rec.maxAlternatives=1;
+      finalTranscriptRef.current='';
+      setVoiceTranscript('');
+      recognitionRef.current=rec;
+      rec.onstart=()=>setVoice('recording');
+      rec.onresult=e=>{
+        let interim='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          const phrase=e.results[i][0]?.transcript||'';
+          if(e.results[i].isFinal)finalTranscriptRef.current+=(finalTranscriptRef.current?' ':'')+phrase.trim();
+          else interim+=phrase;
+        }
+        setVoiceTranscript([finalTranscriptRef.current,interim.trim()].filter(Boolean).join(' '));
+      };
+      rec.onerror=e=>{
+        recognitionRef.current=null;
+        setVoice(e.error==='not-allowed'||e.error==='service-not-allowed'?'permission':e.error==='no-speech'?'ready':'error');
+      };
+      rec.onend=()=>{
+        recognitionRef.current=null;
+        setVoice(v=>v==='recording'?'ready':v);
+        setVoiceTranscript(finalTranscriptRef.current.trim());
+      };
       rec.start();
-    }catch{setVoiceState('error')}
+    }catch(e){
+      recognitionRef.current=null;
+      setVoice('error');
+      setApiMessage('Voice recognition could not start: '+(e?.message||'browser error'));
+    }
   };
-  const stopVoice=()=>{if(recognitionRef.current){recognitionRef.current.stop();recognitionRef.current=null}setVoiceState(v=>v==='recording'?'ready':v)};
+  const stopVoice=()=>{
+    const rec=recognitionRef.current;
+    if(!rec)return;
+    setVoice('stopping');
+    try{rec.stop()}catch{
+      recognitionRef.current=null;
+      setVoice('ready');
+      setVoiceTranscript(finalTranscriptRef.current.trim());
+    }
+  };
   const sendVoiceMessage=async()=>{
     if(!voiceTranscript.trim()||!patient)return;
     setVoiceState('sending');
     try{
       const r=await fetch(API_BASE+'/api/device/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:patient.patient_id,hospital_id:patient.hospital_id,assigned_nurse_id:'NUR00017',device_id:'CC-IOT-ICU-014',message_text:voiceTranscript,message_language:'en-IN'})});
       const j=await r.json();if(!r.ok)throw Error(j.detail?.error||'Message could not be sent');
-      setVoiceState('sent');setVoiceTranscript('');setMessageStatus('Pending');
-    }catch(e){setApiMessage('Message not sent: '+e.message);setVoiceState('error')}
+      finalTranscriptRef.current='';setVoiceTranscript('');setVoice('sent');setMessageStatus('Pending');
+    }catch(e){setApiMessage('Message not sent: '+e.message);setVoice('error')}
   };
   useEffect(()=>{
     let active=true;
@@ -168,12 +207,13 @@ function IoTDevicePage(){
       <section className="iot-voice-panel panel">
         <div className="iot-section-label">PATIENT-TO-NURSE COMMUNICATION</div>
         <h2>Speak to your nurse</h2>
-        <p className="iot-voice-help">Hold the microphone while speaking. Release it when you finish. Review the recognised words before sending.</p>
-        <button className={'iot-voice-hold '+(voiceState==='recording'?'recording':'')} onClick={()=>voiceState==='recording'?stopVoice():startVoice()} onContextMenu={e=>e.preventDefault()} aria-pressed={voiceState==='recording'}>
-          <Mic size={25}/><b>{voiceState==='recording'?'LISTENING — CLICK TO STOP':'CLICK TO START SPEAKING'}</b><small>{voiceState==='recording'?'Speak clearly; click again when finished':'Click once to start microphone listening'}</small>
+        <p className="iot-voice-help">Click the microphone once to start speaking. Click it again when you are finished. Your words will appear below.</p>
+        <button className={'iot-voice-hold '+(voiceState==='recording'?'recording':'')} onClick={()=>['recording','stopping'].includes(voiceState)?stopVoice():startVoice()} onContextMenu={e=>e.preventDefault()} aria-pressed={voiceState==='recording'}>
+          <Mic size={25}/><b>{voiceState==='recording'?'LISTENING — CLICK TO FINISH':voiceState==='stopping'?'FINISHING…':'CLICK TO START SPEAKING'}</b><small>{voiceState==='recording'?'Speak naturally; click again when you finish':voiceState==='stopping'?'Saving the recognised words…':'Click once, speak, then click again'}</small>
         </button>
         {voiceState==='unsupported'&&<p className="iot-voice-warning">Voice recognition is not supported in this browser. Open this bedside device in Chrome or Edge and allow microphone access.</p>}
-        {voiceState==='permission'&&<p className="iot-voice-warning">Microphone permission was denied. Allow microphone access in browser settings.</p>}
+        {voiceState==='permission'&&<p className="iot-voice-warning">The browser blocked microphone speech recognition. Check microphone permission and ensure this page is served over HTTPS or localhost.</p>}
+        {voiceState==='error'&&<p className="iot-voice-warning">Speech recognition stopped unexpectedly. Click the microphone to try again.</p>}
         <label className="iot-voice-label">Recognised message — review before sending</label>
         <textarea className="iot-voice-transcript" rows="3" value={voiceTranscript} onChange={e=>setVoiceTranscript(e.target.value)} placeholder="Your spoken words will appear here…"/>
         <button className="primary" disabled={!voiceTranscript.trim()||voiceState==='sending'} onClick={sendVoiceMessage}>{voiceState==='sending'?'SENDING…':'SEND MESSAGE TO NURSE'}</button>
