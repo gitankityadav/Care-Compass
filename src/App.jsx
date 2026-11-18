@@ -169,8 +169,8 @@ function IoTDevicePage(){
         <div className="iot-section-label">PATIENT-TO-NURSE COMMUNICATION</div>
         <h2>Speak to your nurse</h2>
         <p className="iot-voice-help">Hold the microphone while speaking. Release it when you finish. Review the recognised words before sending.</p>
-        <button className={'iot-voice-hold '+(voiceState==='recording'?'recording':'')} onPointerDown={e=>{e.preventDefault();startVoice()}} onPointerUp={stopVoice} onPointerLeave={stopVoice} onContextMenu={e=>e.preventDefault()}>
-          <Mic size={25}/><b>{voiceState==='recording'?'LISTENING — RELEASE TO FINISH':'PRESS & HOLD TO SPEAK'}</b><small>{voiceState==='recording'?'Speak clearly; release when finished':'This device sends a message to the assigned nurse'}</small>
+        <button className={'iot-voice-hold '+(voiceState==='recording'?'recording':'')} onClick={()=>voiceState==='recording'?stopVoice():startVoice()} onContextMenu={e=>e.preventDefault()} aria-pressed={voiceState==='recording'}>
+          <Mic size={25}/><b>{voiceState==='recording'?'LISTENING — CLICK TO STOP':'CLICK TO START SPEAKING'}</b><small>{voiceState==='recording'?'Speak clearly; click again when finished':'Click once to start microphone listening'}</small>
         </button>
         {voiceState==='unsupported'&&<p className="iot-voice-warning">Voice recognition is not supported in this browser. Open this bedside device in Chrome or Edge and allow microphone access.</p>}
         {voiceState==='permission'&&<p className="iot-voice-warning">Microphone permission was denied. Allow microphone access in browser settings.</p>}
