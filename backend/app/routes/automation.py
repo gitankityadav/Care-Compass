@@ -41,6 +41,16 @@ def _weather(lat, lon):
     return (risky[0] if risky else None), candidates[:6]
 
 
+def _geocode(city, state):
+    query = urllib.parse.urlencode({"name": f"{city}, {state}", "count": 1, "language": "en", "format": "json"})
+    req = urllib.request.Request(f"https://geocoding-api.open-meteo.com/v1/search?{query}", headers={"User-Agent": "CareCompass/1.0"})
+    with urllib.request.urlopen(req, timeout=8) as response:
+        results = json.loads(response.read().decode("utf-8")).get("results") or []
+    if not results:
+        return None
+    return (results[0].get("latitude"), results[0].get("longitude"))
+
+
 def _ensure_table(connection):
     connection.execute("""
         CREATE TABLE IF NOT EXISTS public.automation_events (
@@ -129,7 +139,13 @@ def run_automation_scan():
             checked["home_visits"] = len(visits)
             for v in visits:
                 try:
-                    risk, forecast = forecast_for(v["latitude"], v["longitude"])
+                    place_key = (str(v.get("city") or ""), str(v.get("state") or ""))
+                    if place_key not in geocode_cache:
+                        geocode_cache[place_key] = _geocode(*place_key) if all(place_key) else None
+                    coords = geocode_cache[place_key] or ((v["latitude"], v["longitude"]) if v.get("latitude") is not None and v.get("longitude") is not None else None)
+                    if not coords:
+                        continue
+                    risk, forecast = forecast_for(*coords)
                     if risk:
                         _upsert_event(cur, {
                             "key": f"nurse:weather:{v['session_id']}:{risk['at'][:13]}", "module": "Nurse",
@@ -137,7 +153,7 @@ def run_automation_scan():
                             "title": f"Weather risk before home visit {v['session_id']}",
                             "description": f"Forecast risk at {risk['at']}: rain probability {risk.get('rain_probability')}%, wind {risk.get('wind_kmh')} km/h. Patient {v['patient_id']}; assigned nurse {v.get('assigned_nurse_id')}.",
                             "action": "Nurse should review travel conditions and contact the patient; reschedule only after clinical/dispatch approval.",
-                            "details": {"patient_id": v["patient_id"], "nurse_id": v.get("assigned_nurse_id"), "scheduled_at": v["scheduled_datetime_utc"].isoformat(), "risk_hour": risk, "forecast_sample": forecast, "location_basis": "patient hospital coordinates (approximation)"},
+                            "details": {"patient_id": v["patient_id"], "nurse_id": v.get("assigned_nurse_id"), "scheduled_at": v["scheduled_datetime_utc"].isoformat(), "risk_hour": risk, "forecast_sample": forecast, "location_basis": "patient city/state geocoding" if geocode_cache.get(place_key) else "hospital coordinates fallback (approximation)"},
                         })
                         created += 1
                 except Exception as exc:
