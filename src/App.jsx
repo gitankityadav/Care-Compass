@@ -600,6 +600,13 @@ function App(){
       <form onSubmit={e=>{e.preventDefault();ask()}}><input value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Ask about patients, shipments, staffing..."/><button className="primary" aria-label="Send"><Send size={16}/></button></form>
     </div>}
 
+    {user?.role==='Nurse'&&tab==='patients'&&<div className="nurse-taskbar" role="region" aria-label="Unresolved patient tasks">
+      <div className="nurse-taskbar-label"><span className="urgent-live-dot"/><span><b>OPEN CARE TASKS</b><small>{nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)&&!['Closed','Resolved'].includes(r.status)).length} unresolved</small></span></div>
+      <div className="nurse-taskbar-track"><div className="nurse-taskbar-scroll">
+        {nurseAlerts.filter(r=>assignedPatientIds.has(r.patient_id)&&!['Closed','Resolved'].includes(r.status)).sort((a,b)=>(a.severity==='Critical'?-1:1)-(b.severity==='Critical'?-1:1)).slice(0,20).map(r=><button key={r.id} className={'nurse-task-chip '+(r.severity==='Critical'?'critical':'high')} onClick={()=>{setEmergencyAlert(r);setEmergencyStep(0);setEmergencyNote('')}}><b>{r.severity==='Critical'?'● CRITICAL':'▲ HIGH'}</b><span>{r.patient} · {r.title}</span><small>{r.status} · Open case →</small></button>)}
+        {!nurseAlerts.some(r=>assignedPatientIds.has(r.patient_id)&&!['Closed','Resolved'].includes(r.status))&&<span className="nurse-task-empty">All patient alerts resolved · No outstanding urgent tasks</span>}
+      </div></div><button className="nurse-taskbar-refresh" onClick={refreshDatabase} title="Refresh care tasks">↻</button>
+    </div>}
     {toast&&<div className="toast" key={toast}><CheckCircle2 size={17}/>{toast}</div>}
   </div>
 }
