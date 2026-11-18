@@ -668,3 +668,24 @@ footer{color:#718198!important}
 .urgent-response-drawer .emergency-action{margin:0 22px 18px}
 .urgent-response-drawer .emergency-foot{padding:12px 22px}
 @media(max-width:620px){.urgent-alert-row{align-items:flex-start;gap:8px}.urgent-severity{display:none}.urgent-open{font-size:9px}.urgent-alerts-panel{padding:14px}.urgent-panel-head h2{font-size:16px}}
+
+/* Persistent nurse open-care-task ticker: high contrast and always visible */
+.nurse-taskbar{position:fixed;z-index:9000;right:22px;bottom:18px;width:min(780px,calc(100vw - 340px));min-height:76px;display:flex;align-items:stretch;gap:10px;padding:10px 12px;background:#10243b;border:1px solid #29445f;border-top:3px solid #e11d48;border-radius:14px;box-shadow:0 12px 38px rgba(15,23,42,.28);color:#fff}
+.nurse-taskbar-label{width:132px;flex:none;display:flex;align-items:center;gap:10px;padding:0 5px;border-right:1px solid #3a5068}
+.nurse-taskbar-label>span:last-child{display:flex;flex-direction:column;gap:4px}
+.nurse-taskbar-label b{font-size:10px;letter-spacing:.08em;color:#fff;white-space:nowrap}
+.nurse-taskbar-label small{font-size:10px;color:#cbd5e1}
+.nurse-taskbar-track{min-width:0;flex:1;overflow:hidden;display:flex;align-items:center}
+.nurse-taskbar-scroll{display:flex;align-items:center;gap:9px;overflow-x:auto;width:100%;scrollbar-width:thin;scrollbar-color:#64748b transparent;padding:3px 1px}
+.nurse-task-chip{flex:none;max-width:245px;min-width:185px;display:flex;flex-direction:column;gap:4px;text-align:left;padding:9px 11px;border-radius:9px;border:1px solid #85404c;background:#3b1e2b;color:#fff;cursor:pointer}
+.nurse-task-chip.high{background:#3b321b;border-color:#8b6b2c}
+.nurse-task-chip b{font-size:9px;letter-spacing:.08em;color:#fda4af}
+.nurse-task-chip.high b{color:#fcd34d}
+.nurse-task-chip span{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.nurse-task-chip small{font-size:9px;color:#e2e8f0}
+.nurse-task-chip:hover{filter:brightness(1.18);transform:translateY(-1px)}
+.nurse-task-empty{font-size:11px;color:#d1fae5;padding:10px}
+.nurse-taskbar-refresh{align-self:center;flex:none;width:30px;height:30px;border-radius:8px;border:1px solid #52677e;background:#203951;color:#fff;font-size:20px;cursor:pointer}
+.toast{z-index:11000!important;position:fixed!important;bottom:112px!important;right:24px!important;left:auto!important;max-width:min(440px,calc(100vw - 32px));padding:13px 17px!important;border:1px solid #cbd5e1!important;border-left:4px solid #0d9488!important;border-radius:11px!important;background:#fff!important;color:#14263d!important;box-shadow:0 12px 35px rgba(15,23,42,.18)!important;font-size:13px!important;font-weight:750!important;line-height:1.45!important}
+.toast svg{color:#0d9488!important;flex:none}
+@media(max-width:900px){.nurse-taskbar{left:12px;right:12px;bottom:10px;width:auto}.nurse-taskbar-label{width:112px}.toast{bottom:100px!important;right:12px!important}}
