@@ -93,6 +93,15 @@ def run_automation_scan():
             shipments = cur.fetchall()
             checked["shipments"] = len(shipments)
             now = datetime.now(timezone.utc)
+            forecast_cache = {}
+            geocode_cache = {}
+
+            def forecast_for(lat, lon):
+                cache_key = (round(float(lat), 3), round(float(lon), 3))
+                if cache_key not in forecast_cache:
+                    forecast_cache[cache_key] = _weather(lat, lon)
+                return forecast_cache[cache_key]
+
             for s in shipments:
                 eta = s.get("estimated_delivery_utc")
                 if eta and eta.tzinfo is None:
