@@ -360,11 +360,22 @@ function App(){
     setWorkflowBusy(true)
     try{
       if(dbStatus!=='connected')throw Error('PostgreSQL is offline. Connect the API before saving operational actions.')
-      const response=await fetch(`${API_BASE}/api/data/${table}/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Name':user?.name||'Care Compass User','X-User-Role':user?.role||'Nurse'},body:JSON.stringify(patch)})
+      const isShipment=table==='logistics_shipments'
+      const endpoint=isShipment
+        ?`${API_BASE}/api/logistics/shipments/${encodeURIComponent(id)}/transition`
+        :`${API_BASE}/api/data/${table}/${encodeURIComponent(id)}`
+      const response=await fetch(endpoint,{
+        method:isShipment?'POST':'PATCH',
+        headers:{'Content-Type':'application/json','X-User-Name':user?.name||'Care Compass User','X-User-Role':user?.role||'Nurse'},
+        body:JSON.stringify(isShipment?patch:patch)
+      })
       const body=await response.json()
       if(!response.ok)throw Error(body.detail?.error||body.error||'Could not save workflow action')
-      if(event){const er=await fetch(`${API_BASE}/api/data/shipment_events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shipment_event_id:'SHE_UI_'+Date.now(),shipment_id:event.shipment_id,event_status:event.event_status,event_datetime_utc:new Date().toISOString(),recorded_by:user?.name||'Logistics Manager',scenario_id:null})});const eb=await er.json();if(!er.ok)throw Error(eb.detail?.error||eb.error||'Shipment event could not be recorded')}
-      refreshDatabase();notify(action+' saved to PostgreSQL');setSelected(null)
+      if(event&&!isShipment){
+        const er=await fetch(`${API_BASE}/api/data/shipment_events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shipment_event_id:'SHE_UI_'+Date.now(),shipment_id:event.shipment_id,event_status:event.event_status,event_datetime_utc:new Date().toISOString(),recorded_by:user?.name||'Logistics Manager',scenario_id:null})})
+        const eb=await er.json();if(!er.ok)throw Error(eb.detail?.error||eb.error||'Shipment event could not be recorded')
+      }
+      await refreshDatabase();notify(action+' saved to PostgreSQL');setSelected(null)
     }catch(e){notify('Action not saved: '+e.message)}finally{setWorkflowBusy(false)}
   }
   async function update(collection,id,patch,action){
