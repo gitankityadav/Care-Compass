@@ -266,8 +266,8 @@ function App(){
   useEffect(()=>{
     if(selected?.type!=='logistics'){setShipmentInsight({loading:false,route:null,weather:null,error:''});return}
     const sh=selected.record?.source||{};
-    const dc=data.operations.distributionCenters.find(x=>x.distribution_center_id===sh.distribution_center_id);
-    const hospital=data.hospitals.find(x=>x.hospital_id===(sh.destination_hospital_id||sh.hospital_id));
+    const dc=(data.operations?.distributionCenters||[]).find(x=>x.distribution_center_id===sh.distribution_center_id);
+    const hospital=(data.hospitals||[]).find(x=>x.hospital_id===(sh.destination_hospital_id||sh.hospital_id));
     const point=x=>({lat:Number(x?.latitude??x?.lat),lon:Number(x?.longitude??x?.longitude??x?.long)});
     const valid=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)&&p.lat!==0&&p.lon!==0;
     const originName=[dc?.city||sh.origin_city,dc?.state||sh.origin_state].filter(Boolean).join(', ');
