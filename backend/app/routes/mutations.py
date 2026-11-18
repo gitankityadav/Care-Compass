@@ -427,3 +427,100 @@ async def trigger_iot_alert(body: dict[str, Any] = Body(...)):
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail={"error": "IoT event could not be committed", "reason": str(exc)})
+
+
+def ensure_device_message_table(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS patient_device_messages (
+            message_id TEXT PRIMARY KEY,
+            patient_id TEXT NOT NULL,
+            hospital_id TEXT,
+            assigned_nurse_id TEXT NOT NULL,
+            device_id TEXT NOT NULL,
+            message_text TEXT NOT NULL,
+            message_language TEXT,
+            message_status TEXT NOT NULL DEFAULT 'Pending',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            acknowledged_at TIMESTAMPTZ,
+            acknowledged_by TEXT
+        )
+    """)
+
+
+@router.get("/device/messages")
+def list_device_messages(nurse_id: str | None = None, patient_id: str | None = None):
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                ensure_device_message_table(cursor)
+                query = "SELECT * FROM patient_device_messages WHERE 1=1"
+                params = []
+                if nurse_id:
+                    query += " AND assigned_nurse_id = %s"
+                    params.append(nurse_id)
+                if patient_id:
+                    query += " AND patient_id = %s"
+                    params.append(patient_id)
+                query += " ORDER BY created_at DESC LIMIT 200"
+                cursor.execute(query, params)
+                return {"rows": cursor.fetchall()}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail={"error": "Unable to load bedside messages", "reason": str(exc)})
+
+
+@router.post("/device/messages", status_code=201)
+def create_device_message(body: dict[str, Any] = Body(...)):
+    required = ("patient_id", "assigned_nurse_id", "device_id", "message_text")
+    missing = [key for key in required if not body.get(key)]
+    if missing:
+        raise HTTPException(status_code=400, detail={"error": "Missing required fields", "fields": missing})
+    message_text = str(body["message_text"]).strip()
+    if not message_text or len(message_text) > 4000:
+        raise HTTPException(status_code=400, detail={"error": "Message must contain 1–4000 characters"})
+    message_id = f"MSG-IOT-{int(time.time() * 1000)}-{secrets.token_hex(3).upper()}"
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.transaction():
+                with connection.cursor(row_factory=dict_row) as cursor:
+                    ensure_device_message_table(cursor)
+                    cursor.execute("""
+                        INSERT INTO patient_device_messages
+                        (message_id, patient_id, hospital_id, assigned_nurse_id, device_id,
+                         message_text, message_language, message_status)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,'Pending')
+                        RETURNING *
+                    """, (message_id, body["patient_id"], body.get("hospital_id"),
+                          body["assigned_nurse_id"], body["device_id"], message_text,
+                          body.get("message_language")))
+                    row = cursor.fetchone()
+        return {"message": row}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail={"error": "Could not save bedside message", "reason": str(exc)})
+
+
+@router.patch("/device/messages/{message_id}/acknowledge")
+def acknowledge_device_message(message_id: str, request: Request):
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.transaction():
+                with connection.cursor(row_factory=dict_row) as cursor:
+                    ensure_device_message_table(cursor)
+                    cursor.execute("""
+                        UPDATE patient_device_messages
+                        SET message_status = 'Acknowledged',
+                            acknowledged_at = COALESCE(acknowledged_at, NOW()),
+                            acknowledged_by = COALESCE(acknowledged_by, %s)
+                        WHERE message_id = %s
+                        RETURNING *
+                    """, (request.headers.get("x-user-name", "Assigned Nurse"), message_id))
+                    row = cursor.fetchone()
+                    if not row:
+                        raise HTTPException(status_code=404, detail={"error": "Bedside message not found"})
+        return {"message": row}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail={"error": "Could not acknowledge bedside message", "reason": str(exc)})
