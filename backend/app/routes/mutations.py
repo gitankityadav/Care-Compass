@@ -242,7 +242,7 @@ async def transition_logistics_shipment(
                               AND LOWER(BTRIM(item_name)) = LOWER(BTRIM(%s))
                             FOR UPDATE
                             """,
-                            (next_center_id, before.get("item_description", "")),
+                            (next_center_id, before.get("supply_category", "")),
                         )
                         stock = cursor.fetchone()
                         required_qty = int(before.get("quantity") or 0)
