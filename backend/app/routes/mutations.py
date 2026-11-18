@@ -619,10 +619,12 @@ def decide_nurse_leave_request(request_id: str, request: Request, body: dict[str
                     cursor.execute("""
                         UPDATE nurse_leave_requests
                         SET request_status = %s, responded_at = NOW(), response_note = %s
-                        WHERE leave_request_id = %s AND request_status = 'Pending Approval'
+                        WHERE leave_request_id = %s AND cover_nurse_id = %s
+                          AND request_status = 'Pending Approval'
                         RETURNING *
                     """, ("Approved" if decision == "approved" else "Declined",
-                          body.get("response_note"), request_id))
+                          body.get("response_note"), request_id,
+                          request.headers.get("x-nurse-id", "")))
                     row = cursor.fetchone()
                     if not row:
                         raise HTTPException(status_code=404, detail={"error": "Pending leave request not found"})
