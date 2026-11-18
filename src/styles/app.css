@@ -716,3 +716,5 @@ footer{color:#718198!important}
 .nurse-task-chip.message{background:#3b2453;border-color:#8b5cf6}
 .nurse-task-chip.message b{color:#d8b4fe}
 .nurse-task-chip.message span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+.iot-led.acknowledged{background:#9333ea;box-shadow:0 0 0 5px #9333ea2b,0 0 16px #9333ea}
