@@ -56,10 +56,10 @@ export default function Login({onEnter}){
         <input id="loginEmail" type="email" autoComplete="username" placeholder="Enter your assigned email" value={email} onChange={e=>setEmail(e.target.value)} required/>
         <label htmlFor="loginPassword">Password</label>
         <input id="loginPassword" type="password" autoComplete="current-password" placeholder="Enter your password" value={password} onChange={e=>setPassword(e.target.value)} required/>
-        <div className="eyebrow" style={{marginTop:14}}>ROLE IS ASSIGNED TO YOUR DEMO ACCOUNT</div>
+        <div className="eyebrow" style={{marginTop:14}}>ROLE IS LINKED TO YOUR ACCOUNT</div>
         {error&&<p role="alert" style={{color:"#fb7185",marginTop:10}}>{error}</p>}
         <button className="primary wide shine" type="submit">Sign in to command center <ChevronRight size={17}/></button>
-        <small>Demo environment · Preconfigured staff accounts · No external identity provider</small>
+        <small>Use your assigned Care Compass credentials.</small>
       </form>
     </div>
   </div>
