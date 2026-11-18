@@ -524,3 +524,110 @@ def acknowledge_device_message(message_id: str, request: Request):
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail={"error": "Could not acknowledge bedside message", "reason": str(exc)})
+
+
+def ensure_nurse_leave_table(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS nurse_leave_requests (
+            leave_request_id TEXT PRIMARY KEY,
+            requesting_nurse_id TEXT NOT NULL,
+            cover_nurse_id TEXT NOT NULL,
+            leave_start DATE NOT NULL,
+            leave_end DATE NOT NULL,
+            leave_days INTEGER NOT NULL,
+            patients_to_cover INTEGER NOT NULL DEFAULT 0,
+            sessions_to_cover INTEGER NOT NULL DEFAULT 0,
+            request_status TEXT NOT NULL DEFAULT 'Pending Approval',
+            requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            responded_at TIMESTAMPTZ,
+            response_note TEXT
+        )
+    """)
+
+
+@router.get("/nurse-leave")
+def list_nurse_leave_requests(nurse_id: str | None = None):
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                ensure_nurse_leave_table(cursor)
+                if nurse_id:
+                    cursor.execute("""
+                        SELECT * FROM nurse_leave_requests
+                        WHERE requesting_nurse_id = %s OR cover_nurse_id = %s
+                        ORDER BY requested_at DESC LIMIT 200
+                    """, (nurse_id, nurse_id))
+                else:
+                    cursor.execute("SELECT * FROM nurse_leave_requests ORDER BY requested_at DESC LIMIT 200")
+                return {"rows": cursor.fetchall()}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail={"error": "Unable to load nurse leave requests", "reason": str(exc)})
+
+
+@router.post("/nurse-leave", status_code=201)
+def create_nurse_leave_request(body: dict[str, Any] = Body(...)):
+    required = ("requesting_nurse_id", "cover_nurse_id", "leave_start", "leave_end")
+    missing = [key for key in required if not body.get(key)]
+    if missing:
+        raise HTTPException(status_code=400, detail={"error": "Missing required fields", "fields": missing})
+    if body["requesting_nurse_id"] == body["cover_nurse_id"]:
+        raise HTTPException(status_code=400, detail={"error": "Choose another nurse to cover this leave"})
+    try:
+        from datetime import date
+        start = date.fromisoformat(str(body["leave_start"]))
+        end = date.fromisoformat(str(body["leave_end"]))
+        if end < start:
+            raise ValueError("Leave end must be on or after leave start")
+        days = (end - start).days + 1
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"error": str(exc)})
+    request_id = f"LV-{int(time.time() * 1000)}-{secrets.token_hex(3).upper()}"
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.transaction():
+                with connection.cursor(row_factory=dict_row) as cursor:
+                    ensure_nurse_leave_table(cursor)
+                    cursor.execute("""
+                        INSERT INTO nurse_leave_requests
+                        (leave_request_id, requesting_nurse_id, cover_nurse_id,
+                         leave_start, leave_end, leave_days, patients_to_cover,
+                         sessions_to_cover, request_status)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'Pending Approval')
+                        RETURNING *
+                    """, (request_id, body["requesting_nurse_id"], body["cover_nurse_id"],
+                          start, end, days, max(0, int(body.get("patients_to_cover", 0))),
+                          max(0, int(body.get("sessions_to_cover", 0)))))
+                    row = cursor.fetchone()
+        return {"request": row, "message": "Leave coverage request sent for approval"}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail={"error": "Could not create nurse leave request", "reason": str(exc)})
+
+
+@router.patch("/nurse-leave/{request_id}/decision")
+def decide_nurse_leave_request(request_id: str, body: dict[str, Any] = Body(...), request: Request = None):
+    decision = str(body.get("decision", "")).strip().lower()
+    if decision not in ("approved", "declined"):
+        raise HTTPException(status_code=400, detail={"error": "Decision must be approved or declined"})
+    pool = get_db_pool()
+    try:
+        with pool.connection() as connection:
+            with connection.transaction():
+                with connection.cursor(row_factory=dict_row) as cursor:
+                    ensure_nurse_leave_table(cursor)
+                    cursor.execute("""
+                        UPDATE nurse_leave_requests
+                        SET request_status = %s, responded_at = NOW(), response_note = %s
+                        WHERE leave_request_id = %s AND request_status = 'Pending Approval'
+                        RETURNING *
+                    """, ("Approved" if decision == "approved" else "Declined",
+                          body.get("response_note"), request_id))
+                    row = cursor.fetchone()
+                    if not row:
+                        raise HTTPException(status_code=404, detail={"error": "Pending leave request not found"})
+        return {"request": row}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail={"error": "Could not record leave decision", "reason": str(exc)})
