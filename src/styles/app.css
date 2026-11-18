@@ -778,3 +778,9 @@ body:has(.urgent-drawer-scrim) .nurse-taskbar{display:none!important}
   .therapy-status-summary{grid-template-columns:1fr 1fr}
   .leave-request-row{align-items:flex-start;flex-direction:column}
 }
+
+
+.nurse-banner-actions{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.nurse-banner-actions label{display:flex;flex-direction:column;gap:5px;color:#64758c;font-size:9px;font-weight:850;letter-spacing:.06em}
+.nurse-banner-actions select{min-width:190px;padding:9px 11px;border:1px solid #d4deea;border-radius:9px;background:#fff;color:#17263c;font-size:11px}
+@media(max-width:760px){.nurse-banner-actions{width:100%;align-items:stretch}.nurse-banner-actions label,.nurse-banner-actions select{width:100%}}
