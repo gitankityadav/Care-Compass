@@ -640,8 +640,8 @@ function App(){
           {automationError&&<div className="data-notice db-warning"><b>Could not load automatic checks</b><span>{automationError}</span><button className="text-button" onClick={()=>setRefreshKey(v=>v+1)}>Try again</button></div>}
           <div className="automation-toolbar"><div><b>Automatic checks</b><span>Runs about every {automationStatus?.schedule_minutes||15} minutes. This page refreshes every minute while open.</span></div><button className="primary" onClick={refreshAutomation} disabled={automationBusy||automationLoading}><RefreshCw size={15} className={automationBusy?'spin':''}/>{automationBusy?'Checking…':'Check now'}</button></div>
           <div className="workflow-kpis automation-kpis">
-            <div><small>ALL ITEMS FOUND</small><strong>{automationStatus?.total??automationEvents.length}</strong></div>
-            <div><small>NEEDS ATTENTION</small><strong>{automationStatus?.open??automationEvents.filter(x=>x.event_status==='Open').length}</strong></div>
+            <div><small>ALL ITEMS FOUND</small><strong>{automationEvents.length}</strong></div>
+            <div><small>NEEDS ATTENTION</small><strong>{automationEvents.filter(x=>x.event_status==='Open').length}</strong></div>
             <div><small>NURSE VISITS</small><strong>{automationEvents.filter(x=>x.module==='Nurse').length}</strong></div>
             <div><small>LOGISTICS & STOCK</small><strong>{automationEvents.filter(x=>x.module==='Logistics').length}</strong></div>
           </div>
