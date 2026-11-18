@@ -44,7 +44,7 @@ WRITABLE = {
     ],
     "service_tickets": ["status", "assigned_technician_id"],
     "work_orders": ["status", "outcome", "completion_date_utc"],
-    "therapy_sessions": ["session_status"],
+    "therapy_sessions": ["session_status", "scheduled_datetime_utc"],
     "nurse_patient_assignment": ["active_status"],
     "intervention_cases": ["status"],
     "inventory": ["on_hand_qty", "reserved_qty", "available_qty"],
