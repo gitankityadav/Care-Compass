@@ -363,6 +363,22 @@ async def trigger_iot_alert(body: dict[str, Any] = Body(...)):
         with pool.connection() as connection:
             with connection.transaction():
                 with connection.cursor(row_factory=dict_row) as cursor:
+                    cursor.execute(
+                        """
+                        SELECT 1
+                        FROM nurse_patient_assignment
+                        WHERE nurse_id = %s AND patient_id = %s
+                          AND active_status = TRUE
+                        LIMIT 1
+                        """,
+                        (body["assigned_nurse_id"], body["patient_id"]),
+                    )
+                    if cursor.fetchone() is None:
+                        raise HTTPException(
+                            status_code=400,
+                            detail={"error": "The selected nurse is not actively assigned to this patient. No alert was created."},
+                        )
+
                     # Coalesce repeated bedside button presses for the same patient/device/event
                     # during a rolling 15-minute window. The transaction-scoped advisory lock
                     # prevents simultaneous clicks from creating duplicate rows.
